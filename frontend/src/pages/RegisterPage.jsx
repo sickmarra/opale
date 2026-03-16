@@ -87,21 +87,22 @@ export default function RegisterPage() {
         </Link>
       </header>
 
-      <main className="relative z-10 flex-1 flex flex-col justify-center px-6 pb-12">
-        <div className="mb-8 animate-slide-up">
-          <p className="font-body text-[10px] text-muted tracking-[0.3em] uppercase mb-3">
-            Nuovo account
-          </p>
-          <h1
-            className="font-heading font-light leading-[0.9] text-text"
-            style={{ fontSize: 'clamp(3rem, 12vw, 5.5rem)', letterSpacing: '-0.01em' }}
-          >
-            Il tuo<br/>
-            <em className="not-italic" style={{ color: '#C85A1E' }}>spazio.</em>
-          </h1>
-        </div>
+      <main className="relative z-10 flex-1 flex flex-col justify-center items-center px-6 pb-12">
+        <div className="w-full max-w-sm sm:max-w-md">
+          <div className="mb-8 animate-slide-up sm:text-center">
+            <p className="font-body text-[10px] text-muted tracking-[0.3em] uppercase mb-3">
+              Nuovo account
+            </p>
+            <h1
+              className="font-heading font-light leading-[0.9] text-text"
+              style={{ fontSize: 'clamp(3rem, 12vw, 5.5rem)', letterSpacing: '-0.01em' }}
+            >
+              Il tuo<br className="sm:hidden" />
+              <em className="not-italic sm:ml-3" style={{ color: '#C85A1E' }}>spazio.</em>
+            </h1>
+          </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4 max-w-sm">
+          <form onSubmit={handleSubmit} className="space-y-4 w-full">
 
           {error && (
             <div className="px-4 py-3 animate-slide-up" style={{ background:'rgba(192,57,43,0.08)', borderLeft:'2px solid #C0392B' }}>
@@ -149,10 +150,11 @@ export default function RegisterPage() {
           </div>
         </form>
 
-        <p className="mt-8 font-body text-xs text-muted tracking-wide animate-slide-up-d4">
+        <p className="mt-8 font-body text-xs text-muted tracking-wide animate-slide-up-d4 sm:text-center">
           Hai già un account?{' '}
           <Link to="/login" className="text-[#C85A1E] hover:underline underline-offset-4">Accedi</Link>
         </p>
+        </div>
       </main>
 
       <div className="fixed bottom-0 left-0 right-0 h-px"

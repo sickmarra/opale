@@ -16,8 +16,8 @@ module.exports = {
         danger: '#C0392B',
       },
       fontFamily: {
-        heading: ['"Cormorant Garamond"', 'Georgia', 'serif'],
-        body: ['"Manrope"', 'system-ui', 'sans-serif'],
+        heading: ['"Outfit"', 'sans-serif'],
+        body: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
       },
       backgroundImage: {
         'opale-gradient': 'radial-gradient(ellipse at 20% 20%, rgba(200,90,30,0.15) 0%, transparent 60%), radial-gradient(ellipse at 80% 80%, rgba(26,92,71,0.12) 0%, transparent 60%)',

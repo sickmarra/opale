@@ -62,23 +62,24 @@ export default function LoginPage() {
       </header>
 
       {/* ── Main ── */}
-      <main className="relative z-10 flex-1 flex flex-col justify-center px-6 pb-12">
-        {/* Big editorial heading */}
-        <div className="mb-10 animate-slide-up">
-          <p className="font-body text-[10px] text-muted tracking-[0.3em] uppercase mb-3">
-            Benvenuto/a
-          </p>
-          <h1
-            className="font-heading font-light leading-[0.9] text-text"
-            style={{ fontSize: 'clamp(3.5rem, 14vw, 6rem)', letterSpacing: '-0.01em' }}
-          >
-            Accedi<br/>
-            <em className="not-italic" style={{ color: '#C85A1E' }}>allo studio</em>
-          </h1>
-        </div>
+      <main className="relative z-10 flex-1 flex flex-col justify-center items-center px-6 pb-12">
+        <div className="w-full max-w-sm sm:max-w-md">
+          {/* Big editorial heading */}
+          <div className="mb-10 animate-slide-up sm:text-center">
+            <p className="font-body text-[10px] text-muted tracking-[0.3em] uppercase mb-3">
+              Benvenuto/a
+            </p>
+            <h1
+              className="font-heading font-light leading-[0.9] text-text"
+              style={{ fontSize: 'clamp(3.5rem, 14vw, 5rem)', letterSpacing: '-0.01em' }}
+            >
+              Accedi<br className="sm:hidden" />
+              <em className="not-italic sm:ml-3" style={{ color: '#C85A1E' }}>allo studio</em>
+            </h1>
+          </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-4 max-w-sm animate-slide-up-d1">
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="space-y-4 w-full animate-slide-up-d1">
 
           {error && (
             <div
@@ -143,12 +144,13 @@ export default function LoginPage() {
         </form>
 
         {/* Bottom link */}
-        <p className="mt-8 font-body text-xs text-muted tracking-wide animate-slide-up-d4">
+        <p className="mt-8 font-body text-xs text-muted tracking-wide animate-slide-up-d4 sm:text-center">
           Non hai un account?{' '}
           <Link to="/register" className="text-[#C85A1E] hover:underline underline-offset-4">
             Crea account
           </Link>
         </p>
+        </div>
       </main>
 
       {/* ── Decorative bottom line ── */}
