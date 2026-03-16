@@ -181,7 +181,9 @@ export default function AdminPage() {
       {/* Header */}
       <header className="pt-2">
         <p className="font-body text-[9px] text-muted tracking-[0.28em] uppercase mb-1">Pannello</p>
-        <h1 className="font-heading text-3xl font-light text-text">Admin Opale</h1>
+        <h1 className="font-heading text-4xl font-light text-text leading-tight mb-2">
+          il tuo<span style={{ color: '#C85A1E' }}>.</span><br/>admin
+        </h1>
       </header>
 
       {/* Stats */}

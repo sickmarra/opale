@@ -7,6 +7,7 @@ import HomePage from './pages/HomePage'
 import BookingPage from './pages/BookingPage'
 import ProfilePage from './pages/ProfilePage'
 import AdminPage from './pages/AdminPage'
+import LandingPage from './pages/LandingPage'
 
 function ProtectedRoute({ children, adminOnly = false }) {
   const { user, loading } = useAuth()
@@ -25,7 +26,7 @@ function ProtectedRoute({ children, adminOnly = false }) {
 }
 
 export default function App() {
-  const { user } = useAuth()
+  const { user, loading } = useAuth()
 
   return (
     <div className="min-h-dvh bg-bg bg-opale-gradient">
@@ -33,7 +34,17 @@ export default function App() {
       <Routes>
         <Route path="/login" element={user ? <Navigate to="/" replace /> : <LoginPage />} />
         <Route path="/register" element={user ? <Navigate to="/" replace /> : <RegisterPage />} />
-        <Route path="/" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
+        <Route path="/" element={
+          loading ? (
+            <div className="min-h-dvh bg-bg flex items-center justify-center">
+              <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : user ? (
+            <HomePage />
+          ) : (
+            <LandingPage />
+          )
+        } />
         <Route path="/prenota" element={<ProtectedRoute><BookingPage /></ProtectedRoute>} />
         <Route path="/profilo" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
         <Route path="/admin" element={<ProtectedRoute adminOnly><AdminPage /></ProtectedRoute>} />

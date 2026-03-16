@@ -45,11 +45,10 @@ export default function HomePage() {
           className="font-heading font-light text-text leading-[1]"
           style={{ fontSize: 'clamp(2.4rem, 10vw, 4rem)', letterSpacing: '-0.01em' }}
         >
-          Prenota la tua<br/>
-          <em className="not-italic" style={{ color: '#C85A1E' }}>sessione.</em>
+          il tuo<span style={{ color: '#C85A1E' }}>.</span><br/>spazio
         </h2>
         <p className="font-body text-muted text-sm mt-2 leading-relaxed">
-          Sala pose professionale disponibile<br/>tutti i giorni dalle 8:00 alle 23:00.
+          Prenota la tua sessione nella sala pose<br/>tutti i giorni dalle 8:00 alle 23:00.
         </p>
       </div>
 

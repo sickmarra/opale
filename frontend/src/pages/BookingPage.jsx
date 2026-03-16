@@ -41,7 +41,9 @@ export default function BookingPage() {
           <p className="font-body text-[9px] text-muted tracking-[0.25em] uppercase">
             Passo {step + 1} / {STEPS.length} — {STEPS[step]}
           </p>
-          <h1 className="font-heading text-xl font-light text-text">Nuova prenotazione</h1>
+          <h1 className="font-heading text-2xl font-light text-text mb-1">
+            il tuo<span style={{ color: '#C85A1E' }}>.</span>set
+          </h1>
         </div>
       </header>
 

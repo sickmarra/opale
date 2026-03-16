@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { GoogleLogin } from '@react-oauth/google'
 import Logo from '../components/Logo'
 
 function PasswordBar({ password }) {
@@ -42,7 +43,7 @@ export default function RegisterPage() {
   const [showPw, setShowPw]     = useState(false)
   const [loading, setLoading]   = useState(false)
   const [error, setError]       = useState('')
-  const { register } = useAuth()
+  const { register, loginWithGoogle } = useAuth()
   const navigate = useNavigate()
 
   async function handleSubmit(e) {
@@ -58,6 +59,23 @@ export default function RegisterPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleGoogleSuccess = async (credentialResponse) => {
+    setError('')
+    setLoading(true)
+    try {
+      await loginWithGoogle(credentialResponse.credential)
+      navigate('/', { replace: true })
+    } catch (err) {
+      setError(err.response?.data?.error || 'Autenticazione con Google fallita')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleGoogleError = () => {
+    setError('Accesso con Google fallito')
   }
 
   return (
@@ -94,11 +112,11 @@ export default function RegisterPage() {
               Nuovo account
             </p>
             <h1
-              className="font-heading font-light leading-[0.9] text-text"
+              className="font-heading font-light leading-[0.9] text-text mb-2"
               style={{ fontSize: 'clamp(3rem, 12vw, 5.5rem)', letterSpacing: '-0.01em' }}
             >
-              Il tuo<br className="sm:hidden" />
-              <em className="not-italic sm:ml-3" style={{ color: '#C85A1E' }}>spazio.</em>
+              il tuo<span style={{ color: '#C85A1E' }}>.</span><br className="sm:hidden" />
+              spazio
             </h1>
           </div>
 
@@ -139,7 +157,7 @@ export default function RegisterPage() {
             <PasswordBar password={password} />
           </div>
 
-          <div className="pt-2 animate-slide-up-d4">
+          <div className="pt-2 animate-slide-up-d4 flex flex-col gap-4">
             <button type="submit" disabled={loading}
               className="btn-primary w-full flex items-center justify-center gap-3 h-12">
               {loading
@@ -147,6 +165,18 @@ export default function RegisterPage() {
                 : 'Crea account'
               }
             </button>
+            <div className="flex items-center gap-3 py-2">
+              <div className="h-px bg-white/10 flex-1"></div>
+              <span className="text-xs text-muted font-body tracking-wider uppercase">Oppure</span>
+              <div className="h-px bg-white/10 flex-1"></div>
+            </div>
+            <div className="flex justify-center w-full">
+              <GoogleLogin
+                onSuccess={handleGoogleSuccess}
+                onError={handleGoogleError}
+                useOneTap={false}
+              />
+            </div>
           </div>
         </form>
 

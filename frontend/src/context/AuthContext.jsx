@@ -41,6 +41,14 @@ export function AuthProvider({ children }) {
     return res.data.user
   }
 
+  const loginWithGoogle = async (credential) => {
+    const res = await authApi.googleLogin({ credential })
+    localStorage.setItem('opale_token', res.data.token)
+    localStorage.setItem('opale_user', JSON.stringify(res.data.user))
+    setUser(res.data.user)
+    return res.data.user
+  }
+
   const register = async (email, password, full_name) => {
     const res = await authApi.register({ email, password, full_name })
     localStorage.setItem('opale_token', res.data.token)
@@ -56,7 +64,7 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, isAdmin: user?.role === 'admin' }}>
+    <AuthContext.Provider value={{ user, loading, login, loginWithGoogle, register, logout, isAdmin: user?.role === 'admin' }}>
       {children}
     </AuthContext.Provider>
   )

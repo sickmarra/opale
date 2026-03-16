@@ -1,5 +1,5 @@
 const Logo = ({ className = '', size = 'md' }) => {
-  const heights = { sm: 'h-7', md: 'h-10', lg: 'h-14' }
+  const heights = { sm: 'h-7', md: 'h-10', lg: 'h-14', xl: 'h-24' }
 
   return (
     <div className={`flex items-center logo-fade-in ${className}`}>

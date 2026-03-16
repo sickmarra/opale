@@ -3,8 +3,10 @@ const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
 const { getDb } = require('../database')
 const { authenticate } = require('../middleware/auth')
+const { OAuth2Client } = require('google-auth-library')
 
 const router = express.Router()
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID)
 
 function generateToken(userId) {
   return jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: '30d' })
@@ -61,6 +63,36 @@ router.post('/login', (req, res) => {
   const safeUser = { id: user.id, email: user.email, full_name: user.full_name, role: user.role }
   const token = generateToken(user.id)
   res.json({ token, user: safeUser })
+})
+
+// POST /api/auth/google
+router.post('/google', async (req, res) => {
+  const { credential } = req.body
+  try {
+    const ticket = await client.verifyIdToken({
+      idToken: credential,
+      audience: process.env.GOOGLE_CLIENT_ID
+    })
+    const payload = ticket.getPayload()
+    
+    const db = getDb()
+    let user = db.prepare('SELECT * FROM users WHERE email = ?').get(payload.email.toLowerCase())
+    if (!user) {
+      // Create user if they don't exist
+      const randomPassword = bcrypt.hashSync(Math.random().toString(36).slice(-8), 10)
+      const result = db.prepare(
+        'INSERT INTO users (email, password, full_name) VALUES (?, ?, ?)'
+      ).run(payload.email.toLowerCase(), randomPassword, payload.name)
+      user = db.prepare('SELECT id, email, full_name, role FROM users WHERE id = ?').get(result.lastInsertRowid)
+    }
+
+    const safeUser = { id: user.id, email: user.email, full_name: user.full_name, role: user.role }
+    const token = generateToken(user.id)
+    res.json({ token, user: safeUser })
+  } catch (error) {
+    console.error('Google Auth Error:', error)
+    res.status(401).json({ error: 'Autenticazione Google fallita' })
+  }
 })
 
 // GET /api/auth/me

@@ -204,7 +204,10 @@ export default function ProfilePage() {
       {/* Header */}
       <header className="pt-2">
         <p className="font-body text-[9px] text-muted tracking-[0.28em] uppercase mb-1">Il tuo account</p>
-        <h1 className="font-heading text-3xl font-light text-text leading-tight">{user?.full_name}</h1>
+        <h1 className="font-heading text-4xl font-light text-text leading-tight mb-2">
+          il tuo<span style={{ color: '#C85A1E' }}>.</span><br/>profilo
+        </h1>
+        <p className="font-body text-xs text-muted mb-1">{user?.full_name}</p>
         <p className="font-body text-xs text-muted mt-1">{user?.email}</p>
       </header>
 
