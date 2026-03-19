@@ -4,7 +4,7 @@ import Footer from '../components/Footer'
 
 export default function LandingPage() {
   return (
-    <div className="min-h-dvh relative overflow-hidden bg-[#050505] flex flex-col">
+    <div className="min-h-dvh relative overflow-x-hidden bg-[#050505] flex flex-col">
 
       {/* ── Animated ambient light ── */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
@@ -30,8 +30,8 @@ export default function LandingPage() {
       </div>
 
       {/* Hero */}
-      <div className="flex-1 flex flex-col items-center justify-center text-center px-6">
-        <div className="z-10 mb-12 animate-fade-in -mt-20">
+      <div className="flex-1 flex flex-col items-center justify-center text-center px-6 py-12">
+        <div className="z-10 mb-12 animate-fade-in">
           <Logo size="xl" />
         </div>
 
