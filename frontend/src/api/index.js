@@ -1,7 +1,11 @@
 import axios from 'axios'
 
+const API_BASE = import.meta.env.VITE_API_URL
+  ? `${import.meta.env.VITE_API_URL}/api`
+  : '/api'
+
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: API_BASE,
   headers: { 'Content-Type': 'application/json' }
 })
 
@@ -27,7 +31,11 @@ api.interceptors.response.use(
 
 export const authApi = {
   register: data => api.post('/auth/register', data),
-  login: data => api.post('/auth/login', data),  googleLogin: data => api.post('/auth/google', data),  me: () => api.get('/auth/me'),
+  login: data => api.post('/auth/login', data),
+  googleLogin: data => api.post('/auth/google', data),
+  me: () => api.get('/auth/me'),
+  forgotPassword: data => api.post('/auth/forgot-password', data),
+  resetPassword: data => api.post('/auth/reset-password', data),
 }
 
 export const bookingsApi = {

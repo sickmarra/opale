@@ -4,64 +4,72 @@ const { getDb } = require('../database')
 const router = express.Router()
 
 // GET /api/availability?date=YYYY-MM-DD
-// Returns array of occupied hours for a given date
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   const { date } = req.query
   if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
     return res.status(400).json({ error: 'Formato data non valido. Usa YYYY-MM-DD' })
   }
 
-  const db = getDb()
-  const bookings = db.prepare(
-    "SELECT start_hour, end_hour FROM bookings WHERE date = ? AND status = 'confirmed'"
-  ).all(date)
+  try {
+    const pool = getDb()
+    const result = await pool.query(
+      "SELECT start_hour, end_hour FROM bookings WHERE date = $1 AND status = 'confirmed'",
+      [date]
+    )
 
-  const occupiedHours = new Set()
-  for (const booking of bookings) {
-    for (let h = booking.start_hour; h < booking.end_hour; h++) {
-      occupiedHours.add(h)
+    const occupiedHours = new Set()
+    for (const booking of result.rows) {
+      for (let h = booking.start_hour; h < booking.end_hour; h++) {
+        occupiedHours.add(h)
+      }
     }
-  }
 
-  res.json({ date, occupiedHours: Array.from(occupiedHours).sort((a, b) => a - b) })
+    res.json({ date, occupiedHours: Array.from(occupiedHours).sort((a, b) => a - b) })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: 'Errore interno del server' })
+  }
 })
 
 // GET /api/availability/month?year=2024&month=3
-// Returns days with at least one occupied slot for the month
-router.get('/month', (req, res) => {
+router.get('/month', async (req, res) => {
   const { year, month } = req.query
   if (!year || !month) {
     return res.status(400).json({ error: 'Anno e mese sono obbligatori' })
   }
 
-  const db = getDb()
-  const startDate = `${year}-${String(month).padStart(2, '0')}-01`
-  const endDate = `${year}-${String(month).padStart(2, '0')}-31`
+  try {
+    const pool = getDb()
+    const startDate = `${year}-${String(month).padStart(2, '0')}-01`
+    const endDate = `${year}-${String(month).padStart(2, '0')}-31`
 
-  const bookings = db.prepare(
-    "SELECT date, start_hour, end_hour FROM bookings WHERE date >= ? AND date <= ? AND status = 'confirmed'"
-  ).all(startDate, endDate)
+    const result = await pool.query(
+      "SELECT date, start_hour, end_hour FROM bookings WHERE date >= $1 AND date <= $2 AND status = 'confirmed'",
+      [startDate, endDate]
+    )
 
-  // For each date, calculate occupied hours
-  const dateMap = {}
-  for (const booking of bookings) {
-    if (!dateMap[booking.date]) dateMap[booking.date] = new Set()
-    for (let h = booking.start_hour; h < booking.end_hour; h++) {
-      dateMap[booking.date].add(h)
+    const dateMap = {}
+    for (const booking of result.rows) {
+      if (!dateMap[booking.date]) dateMap[booking.date] = new Set()
+      for (let h = booking.start_hour; h < booking.end_hour; h++) {
+        dateMap[booking.date].add(h)
+      }
     }
-  }
 
-  // Total available slots: 8-23 = 15 hours
-  const TOTAL_SLOTS = 15
-  const result = {}
-  for (const [date, hours] of Object.entries(dateMap)) {
-    result[date] = {
-      occupiedCount: hours.size,
-      fullyBooked: hours.size >= TOTAL_SLOTS
+    const TOTAL_SLOTS = 15
+    const response = {}
+    for (const [date, hours] of Object.entries(dateMap)) {
+      response[date] = {
+        occupiedCount: hours.size,
+        fullyBooked: hours.size >= TOTAL_SLOTS
+      }
     }
-  }
 
-  res.json(result)
+    res.json(response)
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: 'Errore interno del server' })
+  }
 })
 
 module.exports = router

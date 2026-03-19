@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { GoogleLogin } from '@react-oauth/google'
 import Logo from '../components/Logo'
+import Footer from '../components/Footer'
 
 export default function LoginPage() {
   const [email, setEmail]       = useState('')
@@ -147,7 +148,13 @@ export default function LoginPage() {
             </div>
           </div>
 
-          <div className="pt-2 animate-slide-up-d4 flex flex-col gap-4">
+          <div className="flex justify-end -mt-1">
+            <Link to="/recupera-password" className="font-body text-[11px] text-muted hover:text-[#C85A1E] transition-colors tracking-wide">
+              Hai dimenticato la password?
+            </Link>
+          </div>
+
+          <div className="pt-1 animate-slide-up-d4 flex flex-col gap-4">
             <button
               type="submit"
               disabled={loading}
@@ -183,11 +190,7 @@ export default function LoginPage() {
         </div>
       </main>
 
-      {/* ── Decorative bottom line ── */}
-      <div
-        className="fixed bottom-0 left-0 right-0 h-px"
-        style={{ background: 'linear-gradient(90deg, transparent, rgba(200,90,30,0.4) 50%, transparent)' }}
-      />
+      <Footer minimal />
     </div>
   )
 }

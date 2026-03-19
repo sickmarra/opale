@@ -1,6 +1,7 @@
 const express = require('express')
 const { getDb } = require('../database')
 const { authenticate, requireAdmin } = require('../middleware/auth')
+const { sendBookingConfirmationEmail } = require('../utils/mailer')
 
 const router = express.Router()
 
@@ -15,54 +16,61 @@ function calculatePrice(dateStr, durationHours) {
 }
 
 // GET /api/bookings
-// Admin: all bookings with user info; User: own bookings
-router.get('/', authenticate, (req, res) => {
-  const db = getDb()
+router.get('/', authenticate, async (req, res) => {
+  try {
+    const pool = getDb()
+    let bookings
 
-  let bookings
-  if (req.user.role === 'admin') {
-    bookings = db.prepare(`
-      SELECT b.*, u.full_name as user_name, u.email as user_email
-      FROM bookings b
-      JOIN users u ON b.user_id = u.id
-      ORDER BY b.date DESC, b.start_hour DESC
-    `).all()
-  } else {
-    bookings = db.prepare(`
-      SELECT b.*
-      FROM bookings b
-      WHERE b.user_id = ?
-      ORDER BY b.date DESC, b.start_hour DESC
-    `).all(req.user.id)
-  }
-
-  // Attach services to each booking
-  const bookingIds = bookings.map(b => b.id)
-  if (bookingIds.length > 0) {
-    const services = db.prepare(`
-      SELECT bs.booking_id, s.id, s.name, s.description, bs.price_at_booking as price
-      FROM booking_services bs
-      JOIN services s ON bs.service_id = s.id
-      WHERE bs.booking_id IN (${bookingIds.map(() => '?').join(',')})
-    `).all(...bookingIds)
-
-    const serviceMap = {}
-    for (const s of services) {
-      if (!serviceMap[s.booking_id]) serviceMap[s.booking_id] = []
-      serviceMap[s.booking_id].push({ id: s.id, name: s.name, description: s.description, price: s.price })
+    if (req.user.role === 'admin') {
+      const result = await pool.query(`
+        SELECT b.*, u.full_name as user_name, u.email as user_email
+        FROM bookings b
+        JOIN users u ON b.user_id = u.id
+        ORDER BY b.date DESC, b.start_hour DESC
+      `)
+      bookings = result.rows
+    } else {
+      const result = await pool.query(`
+        SELECT b.*
+        FROM bookings b
+        WHERE b.user_id = $1
+        ORDER BY b.date DESC, b.start_hour DESC
+      `, [req.user.id])
+      bookings = result.rows
     }
-    for (const b of bookings) {
-      b.services = serviceMap[b.id] || []
-    }
-  } else {
-    for (const b of bookings) b.services = []
-  }
 
-  res.json(bookings)
+    // Attach services to each booking
+    if (bookings.length > 0) {
+      const bookingIds = bookings.map(b => b.id)
+      const placeholders = bookingIds.map((_, i) => `$${i + 1}`).join(',')
+      const servicesResult = await pool.query(`
+        SELECT bs.booking_id, s.id, s.name, s.description, bs.price_at_booking as price
+        FROM booking_services bs
+        JOIN services s ON bs.service_id = s.id
+        WHERE bs.booking_id IN (${placeholders})
+      `, bookingIds)
+
+      const serviceMap = {}
+      for (const s of servicesResult.rows) {
+        if (!serviceMap[s.booking_id]) serviceMap[s.booking_id] = []
+        serviceMap[s.booking_id].push({ id: s.id, name: s.name, description: s.description, price: s.price })
+      }
+      for (const b of bookings) {
+        b.services = serviceMap[b.id] || []
+      }
+    } else {
+      for (const b of bookings) b.services = []
+    }
+
+    res.json(bookings)
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: 'Errore interno del server' })
+  }
 })
 
 // POST /api/bookings
-router.post('/', authenticate, (req, res) => {
+router.post('/', authenticate, async (req, res) => {
   const { date, start_hour, end_hour, service_ids = [], notes } = req.body
 
   if (!date || start_hour === undefined || end_hour === undefined) {
@@ -75,147 +83,171 @@ router.post('/', authenticate, (req, res) => {
     return res.status(400).json({ error: `Orario non valido. Deve essere tra ${MIN_HOUR}:00 e ${MAX_HOUR}:00` })
   }
 
-  // Check booking is not in the past
   const bookingDate = new Date(`${date}T${String(start_hour).padStart(2, '0')}:00:00`)
   if (bookingDate < new Date()) {
     return res.status(400).json({ error: 'Non puoi prenotare nel passato' })
   }
 
-  const db = getDb()
+  try {
+    const pool = getDb()
 
-  // Check availability - no overlap
-  const conflicts = db.prepare(`
-    SELECT id FROM bookings
-    WHERE date = ? AND status = 'confirmed'
-    AND start_hour < ? AND end_hour > ?
-  `).all(date, end_hour, start_hour)
+    // Check availability
+    const conflicts = await pool.query(`
+      SELECT id FROM bookings
+      WHERE date = $1 AND status = 'confirmed'
+      AND start_hour < $2 AND end_hour > $3
+    `, [date, end_hour, start_hour])
 
-  if (conflicts.length > 0) {
-    return res.status(409).json({ error: 'Uno o più slot orari selezionati sono già prenotati' })
-  }
-
-  const durationHours = end_hour - start_hour
-  let totalPrice = calculatePrice(date, durationHours)
-
-  // Validate and get services
-  let selectedServices = []
-  if (service_ids.length > 0) {
-    selectedServices = db.prepare(
-      `SELECT * FROM services WHERE id IN (${service_ids.map(() => '?').join(',')})`
-    ).all(...service_ids)
-    for (const s of selectedServices) {
-      totalPrice += s.price
+    if (conflicts.rows.length > 0) {
+      return res.status(409).json({ error: 'Uno o più slot orari selezionati sono già prenotati' })
     }
-  }
 
-  // Create booking
-  const bookingResult = db.prepare(
-    'INSERT INTO bookings (user_id, date, start_hour, end_hour, total_price, notes) VALUES (?, ?, ?, ?, ?, ?)'
-  ).run(req.user.id, date, start_hour, end_hour, totalPrice, notes?.trim() || null)
+    const durationHours = end_hour - start_hour
+    let totalPrice = calculatePrice(date, durationHours)
 
-  const bookingId = bookingResult.lastInsertRowid
-
-  // Insert booking_services
-  if (selectedServices.length > 0) {
-    const insertBS = db.prepare(
-      'INSERT INTO booking_services (booking_id, service_id, price_at_booking) VALUES (?, ?, ?)'
-    )
-    for (const s of selectedServices) {
-      insertBS.run(bookingId, s.id, s.price)
-    }
-  }
-
-  const booking = db.prepare('SELECT * FROM bookings WHERE id = ?').get(bookingId)
-  booking.services = selectedServices.map(s => ({ id: s.id, name: s.name, price: s.price }))
-
-  res.status(201).json(booking)
-})
-
-// PUT /api/bookings/:id — user can edit own, admin can edit any
-router.put('/:id', authenticate, (req, res) => {
-  const db = getDb()
-  const booking = db.prepare('SELECT * FROM bookings WHERE id = ?').get(req.params.id)
-
-  if (!booking) return res.status(404).json({ error: 'Prenotazione non trovata' })
-  if (req.user.role !== 'admin' && booking.user_id !== req.user.id) {
-    return res.status(403).json({ error: 'Non puoi modificare questa prenotazione' })
-  }
-
-  const { date, start_hour, end_hour, service_ids, notes } = req.body
-
-  const newDate = date || booking.date
-  const newStart = start_hour ?? booking.start_hour
-  const newEnd = end_hour ?? booking.end_hour
-
-  if (newStart < MIN_HOUR || newEnd > MAX_HOUR || newStart >= newEnd) {
-    return res.status(400).json({ error: 'Orario non valido' })
-  }
-
-  // Check conflicts (excluding current booking)
-  const conflicts = db.prepare(`
-    SELECT id FROM bookings
-    WHERE date = ? AND status = 'confirmed' AND id != ?
-    AND start_hour < ? AND end_hour > ?
-  `).all(newDate, booking.id, newEnd, newStart)
-
-  if (conflicts.length > 0) {
-    return res.status(409).json({ error: 'Uno o più slot orari selezionati sono già prenotati' })
-  }
-
-  const durationHours = newEnd - newStart
-  let totalPrice = calculatePrice(newDate, durationHours)
-
-  let selectedServices = []
-  if (service_ids !== undefined) {
+    // Validate and get services
+    let selectedServices = []
     if (service_ids.length > 0) {
-      selectedServices = db.prepare(
-        `SELECT * FROM services WHERE id IN (${service_ids.map(() => '?').join(',')})`
-      ).all(...service_ids)
+      const placeholders = service_ids.map((_, i) => `$${i + 1}`).join(',')
+      const servResult = await pool.query(
+        `SELECT * FROM services WHERE id IN (${placeholders})`,
+        service_ids
+      )
+      selectedServices = servResult.rows
       for (const s of selectedServices) totalPrice += s.price
     }
-    // Update booking_services
-    db.prepare('DELETE FROM booking_services WHERE booking_id = ?').run(booking.id)
-    const insertBS = db.prepare(
-      'INSERT INTO booking_services (booking_id, service_id, price_at_booking) VALUES (?, ?, ?)'
+
+    // Create booking
+    const bookingResult = await pool.query(
+      'INSERT INTO bookings (user_id, date, start_hour, end_hour, total_price, notes) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+      [req.user.id, date, start_hour, end_hour, totalPrice, notes?.trim() || null]
     )
+    const booking = bookingResult.rows[0]
+
+    // Insert booking_services
     for (const s of selectedServices) {
-      insertBS.run(booking.id, s.id, s.price)
+      await pool.query(
+        'INSERT INTO booking_services (booking_id, service_id, price_at_booking) VALUES ($1, $2, $3)',
+        [booking.id, s.id, s.price]
+      )
     }
-  } else {
-    // Keep existing services, recalculate price
-    const existingServices = db.prepare(`
-      SELECT bs.price_at_booking FROM booking_services bs WHERE bs.booking_id = ?
-    `).all(booking.id)
-    for (const s of existingServices) totalPrice += s.price_at_booking
+
+    booking.services = selectedServices.map(s => ({ id: s.id, name: s.name, price: s.price }))
+
+    // Send booking confirmation email (non-blocking)
+    const userResult = await pool.query('SELECT id, email, full_name FROM users WHERE id = $1', [req.user.id])
+    sendBookingConfirmationEmail(userResult.rows[0], booking, booking.services)
+      .catch(err => console.error('Booking email error:', err.message))
+
+    res.status(201).json(booking)
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: 'Errore interno del server' })
   }
+})
 
-  db.prepare(
-    'UPDATE bookings SET date = ?, start_hour = ?, end_hour = ?, total_price = ?, notes = ? WHERE id = ?'
-  ).run(newDate, newStart, newEnd, totalPrice, notes?.trim() ?? booking.notes, booking.id)
+// PUT /api/bookings/:id
+router.put('/:id', authenticate, async (req, res) => {
+  try {
+    const pool = getDb()
+    const bookingResult = await pool.query('SELECT * FROM bookings WHERE id = $1', [req.params.id])
+    const booking = bookingResult.rows[0]
 
-  const updated = db.prepare('SELECT * FROM bookings WHERE id = ?').get(booking.id)
-  const updatedServices = db.prepare(`
-    SELECT s.id, s.name, s.description, bs.price_at_booking as price
-    FROM booking_services bs JOIN services s ON bs.service_id = s.id
-    WHERE bs.booking_id = ?
-  `).all(booking.id)
-  updated.services = updatedServices
+    if (!booking) return res.status(404).json({ error: 'Prenotazione non trovata' })
+    if (req.user.role !== 'admin' && booking.user_id !== req.user.id) {
+      return res.status(403).json({ error: 'Non puoi modificare questa prenotazione' })
+    }
 
-  res.json(updated)
+    const { date, start_hour, end_hour, service_ids, notes } = req.body
+
+    const newDate = date || booking.date
+    const newStart = start_hour ?? booking.start_hour
+    const newEnd = end_hour ?? booking.end_hour
+
+    if (newStart < MIN_HOUR || newEnd > MAX_HOUR || newStart >= newEnd) {
+      return res.status(400).json({ error: 'Orario non valido' })
+    }
+
+    // Check conflicts (excluding current booking)
+    const conflicts = await pool.query(`
+      SELECT id FROM bookings
+      WHERE date = $1 AND status = 'confirmed' AND id != $2
+      AND start_hour < $3 AND end_hour > $4
+    `, [newDate, booking.id, newEnd, newStart])
+
+    if (conflicts.rows.length > 0) {
+      return res.status(409).json({ error: 'Uno o più slot orari selezionati sono già prenotati' })
+    }
+
+    const durationHours = newEnd - newStart
+    let totalPrice = calculatePrice(newDate, durationHours)
+
+    let selectedServices = []
+    if (service_ids !== undefined) {
+      if (service_ids.length > 0) {
+        const placeholders = service_ids.map((_, i) => `$${i + 1}`).join(',')
+        const servResult = await pool.query(
+          `SELECT * FROM services WHERE id IN (${placeholders})`,
+          service_ids
+        )
+        selectedServices = servResult.rows
+        for (const s of selectedServices) totalPrice += s.price
+      }
+      await pool.query('DELETE FROM booking_services WHERE booking_id = $1', [booking.id])
+      for (const s of selectedServices) {
+        await pool.query(
+          'INSERT INTO booking_services (booking_id, service_id, price_at_booking) VALUES ($1, $2, $3)',
+          [booking.id, s.id, s.price]
+        )
+      }
+    } else {
+      const existingServices = await pool.query(
+        'SELECT price_at_booking FROM booking_services WHERE booking_id = $1',
+        [booking.id]
+      )
+      for (const s of existingServices.rows) totalPrice += s.price_at_booking
+    }
+
+    await pool.query(
+      'UPDATE bookings SET date = $1, start_hour = $2, end_hour = $3, total_price = $4, notes = $5 WHERE id = $6',
+      [newDate, newStart, newEnd, totalPrice, notes?.trim() ?? booking.notes, booking.id]
+    )
+
+    const updated = await pool.query('SELECT * FROM bookings WHERE id = $1', [booking.id])
+    const updatedServices = await pool.query(`
+      SELECT s.id, s.name, s.description, bs.price_at_booking as price
+      FROM booking_services bs JOIN services s ON bs.service_id = s.id
+      WHERE bs.booking_id = $1
+    `, [booking.id])
+
+    const result = updated.rows[0]
+    result.services = updatedServices.rows
+
+    res.json(result)
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: 'Errore interno del server' })
+  }
 })
 
 // DELETE /api/bookings/:id
-router.delete('/:id', authenticate, (req, res) => {
-  const db = getDb()
-  const booking = db.prepare('SELECT * FROM bookings WHERE id = ?').get(req.params.id)
+router.delete('/:id', authenticate, async (req, res) => {
+  try {
+    const pool = getDb()
+    const bookingResult = await pool.query('SELECT * FROM bookings WHERE id = $1', [req.params.id])
+    const booking = bookingResult.rows[0]
 
-  if (!booking) return res.status(404).json({ error: 'Prenotazione non trovata' })
-  if (req.user.role !== 'admin' && booking.user_id !== req.user.id) {
-    return res.status(403).json({ error: 'Non puoi eliminare questa prenotazione' })
+    if (!booking) return res.status(404).json({ error: 'Prenotazione non trovata' })
+    if (req.user.role !== 'admin' && booking.user_id !== req.user.id) {
+      return res.status(403).json({ error: 'Non puoi eliminare questa prenotazione' })
+    }
+
+    await pool.query('DELETE FROM bookings WHERE id = $1', [req.params.id])
+    res.json({ message: 'Prenotazione eliminata' })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: 'Errore interno del server' })
   }
-
-  db.prepare('DELETE FROM bookings WHERE id = ?').run(req.params.id)
-  res.json({ message: 'Prenotazione eliminata' })
 })
 
 module.exports = router

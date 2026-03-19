@@ -1,7 +1,7 @@
 const jwt = require('jsonwebtoken')
 const { getDb } = require('../database')
 
-function authenticate(req, res, next) {
+async function authenticate(req, res, next) {
   const authHeader = req.headers.authorization
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return res.status(401).json({ error: 'Token mancante o non valido' })
@@ -10,8 +10,9 @@ function authenticate(req, res, next) {
   const token = authHeader.split(' ')[1]
   try {
     const payload = jwt.verify(token, process.env.JWT_SECRET)
-    const db = getDb()
-    const user = db.prepare('SELECT id, email, full_name, role FROM users WHERE id = ?').get(payload.userId)
+    const pool = getDb()
+    const result = await pool.query('SELECT id, email, full_name, role FROM users WHERE id = $1', [payload.userId])
+    const user = result.rows[0]
     if (!user) return res.status(401).json({ error: 'Utente non trovato' })
     req.user = user
     next()

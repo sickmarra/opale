@@ -1,43 +1,38 @@
-const Database = require('better-sqlite3')
+const { Pool } = require('pg')
 const bcrypt = require('bcryptjs')
-const path = require('path')
 
-const DB_PATH = path.join(__dirname, 'opale.db')
-
-let db
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false
+})
 
 function getDb() {
-  if (!db) {
-    db = new Database(DB_PATH)
-    db.pragma('journal_mode = WAL')
-    db.pragma('foreign_keys = ON')
-  }
-  return db
+  return pool
 }
 
-function initDatabase() {
-  const db = getDb()
-
-  db.exec(`
+async function initDatabase() {
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS users (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id SERIAL PRIMARY KEY,
       email TEXT UNIQUE NOT NULL,
       password TEXT NOT NULL,
       full_name TEXT NOT NULL,
       role TEXT NOT NULL DEFAULT 'client' CHECK(role IN ('client', 'admin')),
-      created_at TEXT DEFAULT (datetime('now'))
-    );
-
+      created_at TIMESTAMP DEFAULT NOW()
+    )
+  `)
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS services (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id SERIAL PRIMARY KEY,
       name TEXT NOT NULL,
       description TEXT,
       price REAL NOT NULL,
-      created_at TEXT DEFAULT (datetime('now'))
-    );
-
+      created_at TIMESTAMP DEFAULT NOW()
+    )
+  `)
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS bookings (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id SERIAL PRIMARY KEY,
       user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       date TEXT NOT NULL,
       start_hour INTEGER NOT NULL,
@@ -45,38 +40,47 @@ function initDatabase() {
       status TEXT NOT NULL DEFAULT 'confirmed' CHECK(status IN ('confirmed', 'cancelled')),
       total_price REAL NOT NULL,
       notes TEXT,
-      created_at TEXT DEFAULT (datetime('now'))
-    );
-
+      created_at TIMESTAMP DEFAULT NOW()
+    )
+  `)
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS booking_services (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id SERIAL PRIMARY KEY,
       booking_id INTEGER NOT NULL REFERENCES bookings(id) ON DELETE CASCADE,
       service_id INTEGER NOT NULL REFERENCES services(id),
       price_at_booking REAL NOT NULL
-    );
+    )
+  `)
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS password_reset_tokens (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      token TEXT UNIQUE NOT NULL,
+      expires_at TIMESTAMP NOT NULL,
+      used INTEGER DEFAULT 0,
+      created_at TIMESTAMP DEFAULT NOW()
+    )
   `)
 
   // Seed admin user if not exists
   const adminEmail = process.env.ADMIN_EMAIL || 'admin@opalestudio.it'
-  const existingAdmin = db.prepare('SELECT id FROM users WHERE email = ?').get(adminEmail)
-  if (!existingAdmin) {
+  const existingAdmin = await pool.query('SELECT id FROM users WHERE email = $1', [adminEmail])
+  if (existingAdmin.rows.length === 0) {
     const hashedPassword = bcrypt.hashSync(process.env.ADMIN_PASSWORD || 'Opale2024!', 10)
-    db.prepare(
-      'INSERT INTO users (email, password, full_name, role) VALUES (?, ?, ?, ?)'
-    ).run(adminEmail, hashedPassword, 'Admin Opale', 'admin')
+    await pool.query(
+      'INSERT INTO users (email, password, full_name, role) VALUES ($1, $2, $3, $4)',
+      [adminEmail, hashedPassword, 'Admin Opale', 'admin']
+    )
     console.log(`✅ Admin creato: ${adminEmail}`)
   }
 
   // Seed default services if none exist
-  const servicesCount = db.prepare('SELECT COUNT(*) as count FROM services').get()
-  if (servicesCount.count === 0) {
-    const insertService = db.prepare(
-      'INSERT INTO services (name, description, price) VALUES (?, ?, ?)'
-    )
-    insertService.run('Stylist', 'Servizio di styling professionale per il tuo shooting', 50)
-    insertService.run('Make-up Artist', 'Trucco professionale a cura di artisti esperti', 80)
-    insertService.run('Fondale Extra', 'Fondale colorato aggiuntivo a scelta', 20)
-    insertService.run('Attrezzatura Luce', 'Kit luce aggiuntivo per effetti speciali', 30)
+  const servicesCount = await pool.query('SELECT COUNT(*) as count FROM services')
+  if (parseInt(servicesCount.rows[0].count) === 0) {
+    await pool.query('INSERT INTO services (name, description, price) VALUES ($1, $2, $3)', ['Stylist', 'Servizio di styling professionale per il tuo shooting', 50])
+    await pool.query('INSERT INTO services (name, description, price) VALUES ($1, $2, $3)', ['Make-up Artist', 'Trucco professionale a cura di artisti esperti', 80])
+    await pool.query('INSERT INTO services (name, description, price) VALUES ($1, $2, $3)', ['Fondale Extra', 'Fondale colorato aggiuntivo a scelta', 20])
+    await pool.query('INSERT INTO services (name, description, price) VALUES ($1, $2, $3)', ['Attrezzatura Luce', 'Kit luce aggiuntivo per effetti speciali', 30])
     console.log('✅ Servizi extra predefiniti creati')
   }
 

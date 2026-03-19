@@ -16,8 +16,16 @@ app.use(cors({
 }))
 app.use(express.json())
 
-// Initialize DB
-initDatabase()
+// Initialize DB and start server
+async function startServer() {
+  try {
+    await initDatabase()
+  } catch (err) {
+    console.error('❌ Errore inizializzazione database:', err)
+    process.exit(1)
+  }
+}
+startServer()
 
 // Routes
 app.use('/api/auth', authRoutes)

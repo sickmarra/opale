@@ -4,8 +4,6 @@ import { it } from 'date-fns/locale'
 import { bookingsApi, servicesApi } from '../api'
 import { useAuth } from '../context/AuthContext'
 
-const STUDIO_EMAIL = 'opalestudio@gmail.com'
-
 export default function BookingConfirmation({ date, startHour, endHour, serviceIds, studioPrice, onSuccess, onBack }) {
   const { user } = useAuth()
   const [notes, setNotes]     = useState('')
@@ -39,21 +37,6 @@ export default function BookingConfirmation({ date, startHour, endHour, serviceI
     } finally {
       setLoading(false)
     }
-  }
-
-  function buildMailto() {
-    const ds = format(date, "EEEE d MMMM yyyy", { locale: it })
-    const extras = selectedServices.length ? `\nServizi extra: ${selectedServices.map(s => s.name).join(', ')}` : ''
-    const body = encodeURIComponent(
-      `Conferma Prenotazione — Opale Studio\n\n` +
-      `Nome: ${user.full_name}\nEmail: ${user.email}\n` +
-      `Data: ${ds}\nOrario: ${startHour}:00 – ${endHour}:00 (${duration}h)` +
-      extras + `\nTotale: €${total}` +
-      (notes ? `\nNote: ${notes}` : '') +
-      `\n\nID: #${booked?.id}`
-    )
-    const subject = encodeURIComponent(`Prenotazione Opale Studio — ${format(date,'d/MM/yyyy')}`)
-    return `mailto:${STUDIO_EMAIL}?subject=${subject}&body=${body}`
   }
 
   /* ── Success ── */
@@ -97,16 +80,18 @@ export default function BookingConfirmation({ date, startHour, endHour, serviceI
       </div>
 
       <div className="space-y-2.5">
-        <p className="font-body text-[10px] text-muted text-center tracking-wide">
-          Invia una conferma via email allo studio
-        </p>
-        <a href={buildMailto()} className="btn-primary w-full flex items-center justify-center gap-2.5 h-12">
-          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+        <div
+          className="flex items-center gap-2.5 px-4 py-3"
+          style={{ background: 'rgba(26,92,71,0.08)', border: '1px solid rgba(60,179,113,0.15)' }}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="#3CB371" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
             <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>
           </svg>
-          Invia email di conferma
-        </a>
-        <button onClick={onSuccess} className="btn-secondary w-full h-11">
+          <p className="font-body text-[11px] text-muted leading-snug">
+            Email di conferma inviata a <strong className="text-text">{user.email}</strong>
+          </p>
+        </div>
+        <button onClick={onSuccess} className="btn-primary w-full h-12 flex items-center justify-center">
           Torna alla home
         </button>
       </div>

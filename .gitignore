@@ -1,2 +1,8 @@
 node_modules
 .env
+backend/.env
+backend/opale.db
+backend/opale.db-shm
+backend/opale.db-wal
+frontend/dist
+frontend_temp_images
