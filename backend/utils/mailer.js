@@ -1,6 +1,6 @@
-// Resend HTTP API — niente SMTP, usa HTTPS porta 443 (sempre aperta)
+// Brevo (ex Sendinblue) HTTP API — HTTPS porta 443, nessun dominio richiesto
 
-const FROM = `"Opale Studio" <onboarding@resend.dev>`
+const SENDER = { name: 'Opale Studio', email: 'bellacity123@gmail.com' }
 const BRAND_COLOR = '#C85A1E'
 const BG_COLOR = '#0D0D0D'
 const CARD_COLOR = '#141414'
@@ -8,22 +8,27 @@ const TEXT_COLOR = '#F5F0E8'
 const MUTED_COLOR = '#9A9A9A'
 
 async function sendEmail({ to, subject, html }) {
-  const apiKey = process.env.RESEND_API_KEY
+  const apiKey = process.env.BREVO_API_KEY
   if (!apiKey) {
     console.log(`[DEV] Email a ${to} — ${subject}`)
     return
   }
-  const res = await fetch('https://api.resend.com/emails', {
+  const res = await fetch('https://api.brevo.com/v3/smtp/email', {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${apiKey}`,
+      'api-key': apiKey,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ from: FROM, to: [to], subject, html }),
+    body: JSON.stringify({
+      sender: SENDER,
+      to: [{ email: to }],
+      subject,
+      htmlContent: html,
+    }),
   })
   const data = await res.json().catch(() => ({}))
   if (!res.ok) {
-    throw new Error(`Resend API error ${res.status}: ${data.message || JSON.stringify(data)}`)
+    throw new Error(`Brevo API error ${res.status}: ${data.message || JSON.stringify(data)}`)
   }
   return data
 }
