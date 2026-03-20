@@ -1,15 +1,4 @@
-const nodemailer = require('nodemailer')
-
-// Usa Resend via SMTP relay
-const transporter = nodemailer.createTransport({
-  host: 'smtp.resend.com',
-  port: 465,
-  secure: true,
-  auth: {
-    user: 'resend',
-    pass: process.env.RESEND_API_KEY,
-  },
-})
+// Resend HTTP API — niente SMTP, usa HTTPS porta 443 (sempre aperta)
 
 const FROM = `"Opale Studio" <onboarding@resend.dev>`
 const BRAND_COLOR = '#C85A1E'
@@ -17,6 +6,27 @@ const BG_COLOR = '#0D0D0D'
 const CARD_COLOR = '#141414'
 const TEXT_COLOR = '#F5F0E8'
 const MUTED_COLOR = '#9A9A9A'
+
+async function sendEmail({ to, subject, html }) {
+  const apiKey = process.env.RESEND_API_KEY
+  if (!apiKey) {
+    console.log(`[DEV] Email a ${to} — ${subject}`)
+    return
+  }
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ from: FROM, to: [to], subject, html }),
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) {
+    throw new Error(`Resend API error ${res.status}: ${data.message || JSON.stringify(data)}`)
+  }
+  return data
+}
 
 function baseTemplate(content) {
   return `<!DOCTYPE html>
@@ -159,12 +169,7 @@ function forgotPasswordEmail(fullName, resetUrl) {
 }
 
 async function sendVerificationEmail(user, verifyUrl) {
-  if (!process.env.RESEND_API_KEY) {
-    console.log(`[DEV] Verification link for ${user.email}: ${verifyUrl}`)
-    return
-  }
-  return transporter.sendMail({
-    from: FROM,
+  return sendEmail({
     to: user.email,
     subject: 'Conferma il tuo account — Opale Studio',
     html: verificationEmail(user.full_name, verifyUrl),
@@ -172,12 +177,7 @@ async function sendVerificationEmail(user, verifyUrl) {
 }
 
 async function sendBookingConfirmationEmail(user, booking, services = []) {
-  if (!process.env.RESEND_API_KEY) {
-    console.log(`[DEV] Booking confirmation email for ${user.email}`)
-    return
-  }
-  return transporter.sendMail({
-    from: FROM,
+  return sendEmail({
     to: user.email,
     subject: `Prenotazione Confermata — Opale Studio #${booking.id}`,
     html: bookingConfirmationEmail(user, booking, services),
@@ -185,12 +185,7 @@ async function sendBookingConfirmationEmail(user, booking, services = []) {
 }
 
 async function sendForgotPasswordEmail(user, resetUrl) {
-  if (!process.env.RESEND_API_KEY) {
-    console.log(`[DEV] Reset link for ${user.email}: ${resetUrl}`)
-    return
-  }
-  return transporter.sendMail({
-    from: FROM,
+  return sendEmail({
     to: user.email,
     subject: 'Reimposta la tua password — Opale Studio',
     html: forgotPasswordEmail(user.full_name, resetUrl),

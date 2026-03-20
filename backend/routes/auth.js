@@ -30,8 +30,22 @@ router.post('/register', async (req, res) => {
 
   try {
     const pool = getDb()
-    const existing = await pool.query('SELECT id FROM users WHERE email = $1', [email.toLowerCase()])
+    const existing = await pool.query('SELECT id, email, full_name, email_verified FROM users WHERE email = $1', [email.toLowerCase()])
     if (existing.rows.length > 0) {
+      const existingUser = existing.rows[0]
+      // Se esiste ma non è verificato → reinvia il link di verifica invece di dare errore
+      if (!existingUser.email_verified) {
+        const verificationToken = crypto.randomBytes(32).toString('hex')
+        const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000)
+        await pool.query(
+          `UPDATE users SET verification_token=$1, verification_token_expires=$2 WHERE id=$3`,
+          [verificationToken, verificationExpires, existingUser.id]
+        )
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173'
+        const verifyUrl = `${frontendUrl}/verifica-email?token=${verificationToken}`
+        sendVerificationEmail(existingUser, verifyUrl).catch(err => console.error('Verification email error:', err.message))
+        return res.status(200).json({ message: 'Ti abbiamo reinviato l\'email di conferma. Controlla la tua casella.' })
+      }
       return res.status(409).json({ error: 'Email già registrata' })
     }
 

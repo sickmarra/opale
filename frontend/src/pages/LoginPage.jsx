@@ -4,14 +4,17 @@ import { useAuth } from '../context/AuthContext'
 import { GoogleLogin } from '@react-oauth/google'
 import Logo from '../components/Logo'
 import Footer from '../components/Footer'
+import { authApi } from '../api'
 
 export default function LoginPage() {
-  const [email, setEmail]             = useState('')
-  const [password, setPassword]       = useState('')
-  const [showPw, setShowPw]           = useState(false)
-  const [loading, setLoading]         = useState(false)
-  const [error, setError]             = useState('')
-  const [notVerified, setNotVerified] = useState(false)
+  const [email, setEmail]               = useState('')
+  const [password, setPassword]         = useState('')
+  const [showPw, setShowPw]             = useState(false)
+  const [loading, setLoading]           = useState(false)
+  const [error, setError]               = useState('')
+  const [notVerified, setNotVerified]   = useState(false)
+  const [resendLoading, setResendLoading] = useState(false)
+  const [resendDone, setResendDone]     = useState(false)
   const { login, loginWithGoogle } = useAuth()
   const navigate = useNavigate()
 
@@ -117,9 +120,34 @@ export default function LoginPage() {
               <p className="font-body text-xs tracking-wide mb-1" style={{ color: '#C85A1E' }}>
                 Email non ancora confermata.
               </p>
-              <p className="font-body text-xs text-muted tracking-wide">
+              <p className="font-body text-xs text-muted tracking-wide mb-2">
                 Controlla la tua casella di posta e clicca sul link che ti abbiamo inviato.
               </p>
+              {resendDone ? (
+                <p className="font-body text-xs tracking-wide" style={{ color: '#C85A1E' }}>
+                  ✓ Email di verifica inviata di nuovo.
+                </p>
+              ) : (
+                <button
+                  type="button"
+                  disabled={resendLoading}
+                  onClick={async () => {
+                    setResendLoading(true)
+                    try {
+                      await authApi.resendVerification({ email })
+                      setResendDone(true)
+                    } catch {
+                      // silenzioso
+                    } finally {
+                      setResendLoading(false)
+                    }
+                  }}
+                  className="font-body text-xs tracking-widest uppercase transition-colors"
+                  style={{ color: '#C85A1E', opacity: resendLoading ? 0.5 : 1 }}
+                >
+                  {resendLoading ? 'Invio...' : 'Reinvia email di verifica'}
+                </button>
+              )}
             </div>
           )}
 
