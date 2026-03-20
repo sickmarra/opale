@@ -135,13 +135,30 @@ export default function PrivacyPolicyPage() {
             </p>
           </Section>
 
-          <Section title="7. Trasferimenti Extra-UE">
+          <Section title="7. Responsabili del Trattamento (Sub-processor)">
+            <p>Per erogare il servizio ci avvaliamo dei seguenti fornitori terzi, ciascuno dei quali tratta i dati in conformità al GDPR:</p>
+            <ul className="list-none space-y-2 mt-2">
+              {[
+                { name: 'Render Inc.', role: 'Hosting dell\'applicazione (backend + frontend)', location: 'USA — server regione EU (Frankfurt). Trasferimento basato su Standard Contractual Clauses.' },
+                { name: 'Neon Technologies', role: 'Database PostgreSQL (dati account e prenotazioni)', location: 'USA — possibile server EU. Trasferimento basato su Standard Contractual Clauses.' },
+                { name: 'Brevo (ex Sendinblue)', role: 'Invio email transazionali (conferma account, prenotazione, reset password)', location: 'Francia (UE) — trattamento all\'interno dell\'UE.' },
+                { name: 'Google LLC', role: 'Autenticazione opzionale tramite Google OAuth', location: 'USA — trasferimento basato su Standard Contractual Clauses. Si applica la Privacy Policy di Google.' },
+              ].map((item, i) => (
+                <li key={i} className="flex items-start gap-2">
+                  <span className="text-[#C85A1E] mt-1 text-[10px]">▸</span>
+                  <span><strong className="text-text">{item.name}</strong> — {item.role}. <em>{item.location}</em></span>
+                </li>
+              ))}
+            </ul>
+          </Section>
+
+          <Section title="8. Trasferimenti Extra-UE">
             <p>
-              I dati personali vengono trattati all'interno dell'Unione Europea. Eventuali trasferimenti verso paesi terzi avvengono nel rispetto delle garanzie previste dal GDPR (Capitolo V).
+              Alcuni fornitori sopra indicati (Render, Neon, Google) sono basati negli USA. I trasferimenti avvengono nel rispetto delle garanzie previste dal GDPR (art. 46) mediante Standard Contractual Clauses approvate dalla Commissione Europea.
             </p>
           </Section>
 
-          <Section title="8. Aggiornamenti">
+          <Section title="9. Aggiornamenti">
             <p>
               La presente policy può essere aggiornata periodicamente. Le modifiche sostanziali saranno comunicate via email agli utenti registrati.
             </p>

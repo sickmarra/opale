@@ -1,5 +1,16 @@
 // Brevo (ex Sendinblue) HTTP API — HTTPS porta 443, nessun dominio richiesto
 
+// Previene XSS injection nelle email HTML
+function escapeHtml(str) {
+  if (!str) return ''
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#x27;')
+}
+
 const SENDER = { name: 'Opale Studio', email: 'bellacity123@gmail.com' }
 const BRAND_COLOR = '#C85A1E'
 const BG_COLOR = '#0D0D0D'
@@ -70,10 +81,12 @@ function baseTemplate(content) {
 }
 
 function verificationEmail(fullName, verifyUrl) {
+  const safeName = escapeHtml(fullName)
+  const safeUrl = encodeURI(verifyUrl)
   return baseTemplate(`
     <p style="margin:0 0 6px;font-size:11px;color:${MUTED_COLOR};letter-spacing:0.25em;text-transform:uppercase;">Conferma Account</p>
     <h1 style="margin:0 0 20px;font-family:'Georgia',serif;font-size:32px;font-weight:300;color:${TEXT_COLOR};line-height:1.1;">
-      Ciao, ${fullName}<span style="color:${BRAND_COLOR};">.</span>
+      Ciao, ${safeName}<span style="color:${BRAND_COLOR};">.</span>
     </h1>
     <p style="margin:0 0 16px;font-size:14px;color:${MUTED_COLOR};line-height:1.7;">
       Grazie per esserti registrato/a su Opale Studio. Per attivare il tuo account e iniziare a prenotare la sala, clicca sul pulsante qui sotto.
@@ -82,7 +95,7 @@ function verificationEmail(fullName, verifyUrl) {
       Il link è valido per <strong style="color:${TEXT_COLOR};">24 ore</strong>.
     </p>
     <div style="text-align:center;margin-bottom:28px;">
-      <a href="${verifyUrl}"
+      <a href="${safeUrl}"
         style="display:inline-block;background:${BRAND_COLOR};color:#ffffff;text-decoration:none;padding:14px 36px;font-size:13px;letter-spacing:0.1em;text-transform:uppercase;font-weight:500;">
         Conferma Email
       </a>
@@ -92,7 +105,7 @@ function verificationEmail(fullName, verifyUrl) {
         Se non hai creato questo account, ignora questa email.
       </p>
       <p style="margin:0;font-size:11px;color:rgba(154,154,154,0.4);word-break:break-all;">
-        Link diretto: ${verifyUrl}
+        Link diretto: ${safeUrl}
       </p>
     </div>
   `)
@@ -108,8 +121,8 @@ function bookingConfirmationEmail(user, booking, services) {
   const servicesRows = services.length
     ? services.map(s => `
       <tr>
-        <td style="padding:8px 0;font-size:13px;color:${MUTED_COLOR};border-bottom:1px solid rgba(255,255,255,0.04);">${s.name}</td>
-        <td style="padding:8px 0;font-size:13px;color:${TEXT_COLOR};text-align:right;border-bottom:1px solid rgba(255,255,255,0.04);">€${s.price}</td>
+        <td style="padding:8px 0;font-size:13px;color:${MUTED_COLOR};border-bottom:1px solid rgba(255,255,255,0.04);">${escapeHtml(s.name)}</td>
+        <td style="padding:8px 0;font-size:13px;color:${TEXT_COLOR};text-align:right;border-bottom:1px solid rgba(255,255,255,0.04);">€${Number(s.price).toFixed(2)}</td>
       </tr>`).join('')
     : ''
 
@@ -118,7 +131,7 @@ function bookingConfirmationEmail(user, booking, services) {
     <h1 style="margin:0 0 6px;font-family:'Georgia',serif;font-size:32px;font-weight:300;color:${TEXT_COLOR};line-height:1.1;">
       #${booking.id}<span style="color:${BRAND_COLOR};">.</span>
     </h1>
-    <p style="margin:0 0 28px;font-size:14px;color:${MUTED_COLOR};">Ciao ${user.full_name}, la tua prenotazione è confermata.</p>
+    <p style="margin:0 0 28px;font-size:14px;color:${MUTED_COLOR};">Ciao ${escapeHtml(user.full_name)}, la tua prenotazione è confermata.</p>
 
     <table width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid rgba(255,255,255,0.06);margin-bottom:24px;">
       <tr>
@@ -136,7 +149,7 @@ function bookingConfirmationEmail(user, booking, services) {
       </tr>
     </table>
 
-    ${booking.notes ? `<div style="background:rgba(255,255,255,0.03);border-left:2px solid rgba(200,90,30,0.3);padding:12px 16px;margin-bottom:24px;"><p style="margin:0;font-size:12px;color:${MUTED_COLOR};">Note: ${booking.notes}</p></div>` : ''}
+    ${booking.notes ? `<div style="background:rgba(255,255,255,0.03);border-left:2px solid rgba(200,90,30,0.3);padding:12px 16px;margin-bottom:24px;"><p style="margin:0;font-size:12px;color:${MUTED_COLOR};">Note: ${escapeHtml(booking.notes)}</p></div>` : ''}
 
     <p style="margin:0;font-size:12px;color:rgba(154,154,154,0.5);">
       Per modifiche o cancellazioni accedi al tuo profilo o contattaci a info@opalestudio.it
@@ -145,19 +158,21 @@ function bookingConfirmationEmail(user, booking, services) {
 }
 
 function forgotPasswordEmail(fullName, resetUrl) {
+  const safeName = escapeHtml(fullName)
+  const safeUrl = encodeURI(resetUrl)
   return baseTemplate(`
     <p style="margin:0 0 6px;font-size:11px;color:${MUTED_COLOR};letter-spacing:0.25em;text-transform:uppercase;">Recupero Password</p>
     <h1 style="margin:0 0 20px;font-family:'Georgia',serif;font-size:32px;font-weight:300;color:${TEXT_COLOR};line-height:1.1;">
       Reimposta<span style="color:${BRAND_COLOR};">.</span>
     </h1>
     <p style="margin:0 0 16px;font-size:14px;color:${MUTED_COLOR};line-height:1.7;">
-      Ciao ${fullName}, abbiamo ricevuto una richiesta di reimpostazione della password per il tuo account Opale Studio.
+      Ciao ${safeName}, abbiamo ricevuto una richiesta di reimpostazione della password per il tuo account Opale Studio.
     </p>
     <p style="margin:0 0 28px;font-size:14px;color:${MUTED_COLOR};line-height:1.7;">
       Clicca sul pulsante qui sotto per scegliere una nuova password. Il link è valido per <strong style="color:${TEXT_COLOR};">1 ora</strong>.
     </p>
     <div style="text-align:center;margin-bottom:28px;">
-      <a href="${resetUrl}"
+      <a href="${safeUrl}"
         style="display:inline-block;background:${BRAND_COLOR};color:#ffffff;text-decoration:none;padding:14px 36px;font-size:13px;letter-spacing:0.1em;text-transform:uppercase;font-weight:500;">
         Reimposta Password
       </a>
@@ -167,7 +182,7 @@ function forgotPasswordEmail(fullName, resetUrl) {
         Se non hai richiesto il recupero password, ignora questa email. Il tuo account è al sicuro.
       </p>
       <p style="margin:0;font-size:11px;color:rgba(154,154,154,0.4);word-break:break-all;">
-        Link diretto: ${resetUrl}
+        Link diretto: ${safeUrl}
       </p>
     </div>
   `)

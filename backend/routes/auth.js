@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken')
 const crypto = require('crypto')
 const { getDb } = require('../database')
 const { authenticate } = require('../middleware/auth')
+const { authLimiter, emailLimiter } = require('../middleware/rateLimiter')
 const { OAuth2Client } = require('google-auth-library')
 const { sendVerificationEmail, sendForgotPasswordEmail } = require('../utils/mailer')
 
@@ -15,7 +16,7 @@ function generateToken(userId) {
 }
 
 // POST /api/auth/register
-router.post('/register', async (req, res) => {
+router.post('/register', authLimiter, async (req, res) => {
   const { email, password, full_name } = req.body
   if (!email || !password || !full_name) {
     return res.status(400).json({ error: 'Tutti i campi sono obbligatori' })
@@ -110,7 +111,7 @@ router.get('/verify-email', async (req, res) => {
 })
 
 // POST /api/auth/login
-router.post('/login', async (req, res) => {
+router.post('/login', authLimiter, async (req, res) => {
   const { email, password } = req.body
   if (!email || !password) {
     return res.status(400).json({ error: 'Email e password sono obbligatorie' })
@@ -187,7 +188,7 @@ router.get('/me', authenticate, (req, res) => {
 })
 
 // POST /api/auth/resend-verification
-router.post('/resend-verification', async (req, res) => {
+router.post('/resend-verification', emailLimiter, async (req, res) => {
   const { email } = req.body
   if (!email) return res.status(400).json({ error: 'Email obbligatoria' })
 
@@ -220,7 +221,7 @@ router.post('/resend-verification', async (req, res) => {
 })
 
 // POST /api/auth/forgot-password
-router.post('/forgot-password', async (req, res) => {
+router.post('/forgot-password', emailLimiter, async (req, res) => {
   const { email } = req.body
   if (!email) {
     return res.status(400).json({ error: 'Email obbligatoria' })
@@ -292,6 +293,39 @@ router.post('/reset-password', async (req, res) => {
   } catch (err) {
     console.error(err)
     res.status(500).json({ error: 'Errore interno del server' })
+  }
+})
+
+// DELETE /api/auth/account  — GDPR "diritto all'oblio"
+router.delete('/account', authenticate, async (req, res) => {
+  const { confirmEmail } = req.body
+
+  if (!confirmEmail) {
+    return res.status(400).json({ error: "Inserisci la tua email per confermare l'eliminazione." })
+  }
+
+  try {
+    const pool = getDb()
+    const userResult = await pool.query('SELECT * FROM users WHERE id = $1', [req.user.id])
+    const user = userResult.rows[0]
+
+    if (!user) return res.status(404).json({ error: 'Utente non trovato.' })
+
+    if (user.role === 'admin') {
+      return res.status(403).json({ error: "L'account amministratore non può essere eliminato da questa interfaccia." })
+    }
+
+    if (confirmEmail.toLowerCase().trim() !== user.email.toLowerCase()) {
+      return res.status(400).json({ error: "L'email inserita non corrisponde all'account." })
+    }
+
+    // ON DELETE CASCADE rimuove automaticamente bookings e booking_services
+    await pool.query('DELETE FROM users WHERE id = $1', [user.id])
+
+    res.json({ message: 'Account e tutti i dati associati eliminati con successo.' })
+  } catch (err) {
+    console.error('Delete account error:', err)
+    res.status(500).json({ error: 'Errore interno del server.' })
   }
 })
 

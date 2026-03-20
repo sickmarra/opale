@@ -63,6 +63,13 @@ export function AuthProvider({ children }) {
     return res.data.user
   }
 
+  const deleteAccount = async (confirmEmail) => {
+    await authApi.deleteAccount({ confirmEmail })
+    localStorage.removeItem('opale_token')
+    localStorage.removeItem('opale_user')
+    setUser(null)
+  }
+
   const logout = () => {
     localStorage.removeItem('opale_token')
     localStorage.removeItem('opale_user')
@@ -70,7 +77,7 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, loginWithGoogle, register, verifyEmail, logout, isAdmin: user?.role === 'admin' }}>
+    <AuthContext.Provider value={{ user, loading, login, loginWithGoogle, register, verifyEmail, logout, deleteAccount, isAdmin: user?.role === 'admin' }}>
       {children}
     </AuthContext.Provider>
   )

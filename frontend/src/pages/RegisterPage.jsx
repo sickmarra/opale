@@ -37,19 +37,21 @@ function PasswordBar({ password }) {
 }
 
 export default function RegisterPage() {
-  const [fullName, setFullName]   = useState('')
-  const [email, setEmail]         = useState('')
-  const [password, setPassword]   = useState('')
-  const [showPw, setShowPw]       = useState(false)
-  const [loading, setLoading]     = useState(false)
-  const [error, setError]         = useState('')
-  const [emailSent, setEmailSent] = useState(false)
+  const [fullName, setFullName]         = useState('')
+  const [email, setEmail]               = useState('')
+  const [password, setPassword]         = useState('')
+  const [showPw, setShowPw]             = useState(false)
+  const [privacyAccepted, setPrivacy]   = useState(false)
+  const [loading, setLoading]           = useState(false)
+  const [error, setError]               = useState('')
+  const [emailSent, setEmailSent]       = useState(false)
   const { register, loginWithGoogle } = useAuth()
   const navigate = useNavigate()
 
   async function handleSubmit(e) {
     e.preventDefault()
     if (password.length < 6) { setError('Password di almeno 6 caratteri'); return }
+    if (!privacyAccepted) { setError('Devi accettare la Privacy Policy per registrarti'); return }
     setError('')
     setLoading(true)
     try {
@@ -195,9 +197,45 @@ export default function RegisterPage() {
             <PasswordBar password={password} />
           </div>
 
+          {/* Consenso privacy — obbligatorio GDPR */}
+          <div className="animate-slide-up-d4">
+            <label className="flex items-start gap-3 cursor-pointer select-none">
+              <div className="relative mt-0.5 flex-shrink-0">
+                <input
+                  type="checkbox"
+                  checked={privacyAccepted}
+                  onChange={e => setPrivacy(e.target.checked)}
+                  className="sr-only"
+                />
+                <div
+                  onClick={() => setPrivacy(v => !v)}
+                  className="w-4 h-4 flex items-center justify-center transition-all duration-200"
+                  style={{
+                    border: `1px solid ${privacyAccepted ? '#C85A1E' : 'rgba(255,255,255,0.2)'}`,
+                    background: privacyAccepted ? '#C85A1E' : 'transparent',
+                  }}
+                >
+                  {privacyAccepted && (
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                  )}
+                </div>
+              </div>
+              <span className="font-body text-xs text-muted leading-relaxed">
+                Ho letto e accetto la{' '}
+                <Link to="/privacy" target="_blank" className="text-[#C85A1E] hover:underline underline-offset-4">
+                  Privacy Policy
+                </Link>
+                {' '}e acconsento al trattamento dei miei dati personali per la gestione dell'account e delle prenotazioni.
+              </span>
+            </label>
+          </div>
+
           <div className="pt-2 animate-slide-up-d4 flex flex-col gap-4">
-            <button type="submit" disabled={loading}
-              className="btn-primary w-full flex items-center justify-center gap-3 h-12">
+            <button type="submit" disabled={loading || !privacyAccepted}
+              className="btn-primary w-full flex items-center justify-center gap-3 h-12"
+              style={{ opacity: privacyAccepted ? 1 : 0.5 }}>
               {loading
                 ? <div className="w-4 h-4 border border-text/50 border-t-text rounded-full animate-spin"/>
                 : 'Crea account'

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { format, parseISO, getDay } from 'date-fns'
 import { it } from 'date-fns/locale'
 import { bookingsApi, servicesApi } from '../api'
@@ -165,15 +165,96 @@ function EditModal({ booking, allServices, onSave, onClose }) {
   )
 }
 
+/* ── Delete Account Modal ─────────────────────────────────────────────── */
+function DeleteAccountModal({ userEmail, onClose, onDeleted }) {
+  const [confirmEmail, setConfirmEmail] = useState('')
+  const [loading, setLoading]           = useState(false)
+  const [error, setError]               = useState('')
+  const { deleteAccount } = useAuth()
+
+  async function handleDelete() {
+    if (!confirmEmail) { setError('Inserisci la tua email per confermare'); return }
+    setLoading(true)
+    setError('')
+    try {
+      await deleteAccount(confirmEmail)
+      onDeleted()
+    } catch (err) {
+      setError(err.response?.data?.error || 'Errore durante l\'eliminazione')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
+      style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)' }}>
+      <div className="w-full max-w-sm animate-slide-up"
+        style={{ background: '#111', border: '1px solid rgba(192,57,43,0.3)', padding: '1.5rem' }}>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-heading text-xl font-light text-text">Elimina account</h2>
+          <button onClick={onClose} className="text-muted hover:text-text transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+
+        <p className="font-body text-xs text-muted leading-relaxed mb-4">
+          Questa azione è <strong className="text-text">irreversibile</strong>. Verranno eliminati il tuo account e tutte le prenotazioni associate, in conformità con il tuo diritto all'oblio (GDPR art. 17).
+        </p>
+
+        <div className="mb-4 px-3 py-2.5" style={{ background: 'rgba(192,57,43,0.06)', borderLeft: '2px solid rgba(192,57,43,0.4)' }}>
+          <p className="font-body text-[10px] text-muted tracking-widest uppercase mb-1">Conferma con la tua email</p>
+          <p className="font-body text-xs text-text break-all">{userEmail}</p>
+        </div>
+
+        <input
+          type="email"
+          value={confirmEmail}
+          onChange={e => setConfirmEmail(e.target.value)}
+          placeholder="Inserisci la tua email"
+          className="input-field mb-3"
+          autoComplete="off"
+        />
+
+        {error && (
+          <div className="px-3 py-2 mb-3" style={{ background: 'rgba(192,57,43,0.08)', borderLeft: '2px solid #C0392B' }}>
+            <p className="font-body text-xs text-red-400">{error}</p>
+          </div>
+        )}
+
+        <div className="flex gap-3">
+          <button onClick={onClose} className="btn-secondary flex-1 h-10 text-xs">Annulla</button>
+          <button
+            onClick={handleDelete}
+            disabled={loading || confirmEmail.toLowerCase() !== userEmail?.toLowerCase()}
+            className="flex-1 h-10 font-body text-xs tracking-widest uppercase transition-all flex items-center justify-center gap-2"
+            style={{
+              background: confirmEmail.toLowerCase() === userEmail?.toLowerCase() ? 'rgba(192,57,43,0.8)' : 'rgba(192,57,43,0.2)',
+              color: confirmEmail.toLowerCase() === userEmail?.toLowerCase() ? '#fff' : 'rgba(255,255,255,0.3)',
+              border: '1px solid rgba(192,57,43,0.4)',
+            }}>
+            {loading
+              ? <div className="w-4 h-4 border border-white/40 border-t-white rounded-full animate-spin"/>
+              : 'Elimina tutto'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 /* ── Profile Page ─────────────────────────────────────────────────────── */
 export default function ProfilePage() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
-  const [bookings, setBookings]       = useState([])
-  const [allServices, setAllServices] = useState([])
-  const [loading, setLoading]         = useState(true)
+  const [bookings, setBookings]             = useState([])
+  const [allServices, setAllServices]       = useState([])
+  const [loading, setLoading]               = useState(true)
   const [editingBooking, setEditingBooking] = useState(null)
-  const [filter, setFilter]           = useState('upcoming')
+  const [filter, setFilter]                 = useState('upcoming')
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
 
   useEffect(() => {
     Promise.all([bookingsApi.getAll(), servicesApi.getAll()])
@@ -199,6 +280,13 @@ export default function ProfilePage() {
     <main className="page-container space-y-6 animate-fade-in">
       {editingBooking && (
         <EditModal booking={editingBooking} allServices={allServices} onSave={handleEdit} onClose={() => setEditingBooking(null)} />
+      )}
+      {showDeleteModal && (
+        <DeleteAccountModal
+          userEmail={user?.email}
+          onClose={() => setShowDeleteModal(false)}
+          onDeleted={() => navigate('/', { replace: true })}
+        />
       )}
 
       {/* Header */}
@@ -283,6 +371,31 @@ export default function ProfilePage() {
         </svg>
         Esci
       </button>
+
+      {/* Zona privacy / GDPR */}
+      <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '1.5rem' }}>
+        <p className="font-body text-[9px] text-muted tracking-[0.28em] uppercase mb-3">Privacy & Dati</p>
+        <div className="space-y-2">
+          <Link to="/privacy" className="flex items-center gap-2 font-body text-xs text-muted hover:text-text transition-colors tracking-wide">
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+            Privacy Policy
+          </Link>
+          <button
+            onClick={() => setShowDeleteModal(true)}
+            className="flex items-center gap-2 font-body text-xs transition-colors tracking-wide"
+            style={{ color: 'rgba(192,57,43,0.7)' }}
+            onMouseEnter={e => e.currentTarget.style.color = '#C0392B'}
+            onMouseLeave={e => e.currentTarget.style.color = 'rgba(192,57,43,0.7)'}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
+            </svg>
+            Elimina il mio account (diritto all'oblio)
+          </button>
+        </div>
+      </div>
     </main>
   )
 }

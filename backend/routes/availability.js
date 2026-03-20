@@ -33,9 +33,10 @@ router.get('/', async (req, res) => {
 
 // GET /api/availability/month?year=2024&month=3
 router.get('/month', async (req, res) => {
-  const { year, month } = req.query
-  if (!year || !month) {
-    return res.status(400).json({ error: 'Anno e mese sono obbligatori' })
+  const year = parseInt(req.query.year, 10)
+  const month = parseInt(req.query.month, 10)
+  if (!year || !month || isNaN(year) || isNaN(month) || year < 2020 || year > 2100 || month < 1 || month > 12) {
+    return res.status(400).json({ error: 'Anno e mese non validi' })
   }
 
   try {

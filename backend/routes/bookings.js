@@ -71,9 +71,14 @@ router.get('/', authenticate, async (req, res) => {
 
 // POST /api/bookings
 router.post('/', authenticate, async (req, res) => {
-  const { date, start_hour, end_hour, service_ids = [], notes } = req.body
+  const rawDate = req.body.date
+  const start_hour = parseInt(req.body.start_hour, 10)
+  const end_hour = parseInt(req.body.end_hour, 10)
+  const service_ids = Array.isArray(req.body.service_ids) ? req.body.service_ids.map(Number).filter(Number.isFinite) : []
+  const notes = typeof req.body.notes === 'string' ? req.body.notes.slice(0, 500) : null
+  const date = rawDate
 
-  if (!date || start_hour === undefined || end_hour === undefined) {
+  if (!date || isNaN(start_hour) || isNaN(end_hour)) {
     return res.status(400).json({ error: 'Data, ora inizio e ora fine sono obbligatorie' })
   }
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
@@ -158,7 +163,10 @@ router.put('/:id', authenticate, async (req, res) => {
       return res.status(403).json({ error: 'Non puoi modificare questa prenotazione' })
     }
 
-    const { date, start_hour, end_hour, service_ids, notes } = req.body
+    const { date, service_ids } = req.body
+    const start_hour = req.body.start_hour !== undefined ? parseInt(req.body.start_hour, 10) : undefined
+    const end_hour = req.body.end_hour !== undefined ? parseInt(req.body.end_hour, 10) : undefined
+    const notes = typeof req.body.notes === 'string' ? req.body.notes.slice(0, 500) : req.body.notes
 
     const newDate = date || booking.date
     const newStart = start_hour ?? booking.start_hour
