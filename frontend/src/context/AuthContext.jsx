@@ -51,6 +51,12 @@ export function AuthProvider({ children }) {
 
   const register = async (email, password, full_name) => {
     const res = await authApi.register({ email, password, full_name })
+    // La registrazione non restituisce più un token — richiede verifica email
+    return res.data
+  }
+
+  const verifyEmail = async (token) => {
+    const res = await authApi.verifyEmail(token)
     localStorage.setItem('opale_token', res.data.token)
     localStorage.setItem('opale_user', JSON.stringify(res.data.user))
     setUser(res.data.user)
@@ -64,7 +70,7 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, loginWithGoogle, register, logout, isAdmin: user?.role === 'admin' }}>
+    <AuthContext.Provider value={{ user, loading, login, loginWithGoogle, register, verifyEmail, logout, isAdmin: user?.role === 'admin' }}>
       {children}
     </AuthContext.Provider>
   )

@@ -18,9 +18,16 @@ async function initDatabase() {
       password TEXT NOT NULL,
       full_name TEXT NOT NULL,
       role TEXT NOT NULL DEFAULT 'client' CHECK(role IN ('client', 'admin')),
+      email_verified BOOLEAN NOT NULL DEFAULT FALSE,
+      verification_token TEXT,
+      verification_token_expires TIMESTAMP,
       created_at TIMESTAMP DEFAULT NOW()
     )
   `)
+  // Aggiungi colonne se non esistono (per DB già creati)
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified BOOLEAN NOT NULL DEFAULT FALSE`).catch(() => {})
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS verification_token TEXT`).catch(() => {})
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS verification_token_expires TIMESTAMP`).catch(() => {})
   await pool.query(`
     CREATE TABLE IF NOT EXISTS services (
       id SERIAL PRIMARY KEY,
@@ -68,7 +75,7 @@ async function initDatabase() {
   if (existingAdmin.rows.length === 0) {
     const hashedPassword = bcrypt.hashSync(process.env.ADMIN_PASSWORD || 'Opale2024!', 10)
     await pool.query(
-      'INSERT INTO users (email, password, full_name, role) VALUES ($1, $2, $3, $4)',
+      'INSERT INTO users (email, password, full_name, role, email_verified) VALUES ($1, $2, $3, $4, TRUE)',
       [adminEmail, hashedPassword, 'Admin Opale', 'admin']
     )
     console.log(`✅ Admin creato: ${adminEmail}`)

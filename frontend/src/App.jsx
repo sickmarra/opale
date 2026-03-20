@@ -13,6 +13,7 @@ import AdminPage from './pages/AdminPage'
 import LandingPage from './pages/LandingPage'
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage'
 import CookiePolicyPage from './pages/CookiePolicyPage'
+import VerifyEmailPage from './pages/VerifyEmailPage'
 
 function ProtectedRoute({ children, adminOnly = false }) {
   const { user, loading } = useAuth()
@@ -41,6 +42,7 @@ export default function App() {
         <Route path="/register" element={user ? <Navigate to="/" replace /> : <RegisterPage />} />
         <Route path="/recupera-password" element={user ? <Navigate to="/" replace /> : <ForgotPasswordPage />} />
         <Route path="/reset-password" element={user ? <Navigate to="/" replace /> : <ResetPasswordPage />} />
+        <Route path="/verifica-email" element={<VerifyEmailPage />} />
         <Route path="/privacy" element={<PrivacyPolicyPage />} />
         <Route path="/cookie" element={<CookiePolicyPage />} />
         <Route path="/" element={

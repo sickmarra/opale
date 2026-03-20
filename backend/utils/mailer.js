@@ -1,14 +1,17 @@
 const nodemailer = require('nodemailer')
 
+// Usa Resend via SMTP relay
 const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || 'sandbox.smtp.mailtrap.io',
-  port: parseInt(process.env.SMTP_PORT) || 587,
+  host: 'smtp.resend.com',
+  port: 465,
+  secure: true,
   auth: {
-    user: process.env.SMTP_USER || '4f634c8b389bf7',
-    pass: process.env.SMTP_PASS,
+    user: 'resend',
+    pass: process.env.RESEND_API_KEY,
   },
 })
 
+const FROM = `"Opale Studio" <onboarding@resend.dev>`
 const BRAND_COLOR = '#C85A1E'
 const BG_COLOR = '#0D0D0D'
 const CARD_COLOR = '#141414'
@@ -41,7 +44,7 @@ function baseTemplate(content) {
         <tr>
           <td style="padding:24px 36px;border-top:1px solid rgba(255,255,255,0.06);text-align:center;">
             <p style="margin:0 0 4px;font-size:11px;color:${MUTED_COLOR};letter-spacing:0.05em;text-transform:uppercase;">Opale Studio · Sala Pose Fotografica</p>
-            <p style="margin:0;font-size:10px;color:rgba(154,154,154,0.5);">P.IVA 12345678901 · info@opalestudio.it</p>
+            <p style="margin:0;font-size:10px;color:rgba(154,154,154,0.5);">info@opalestudio.it</p>
           </td>
         </tr>
       </table>
@@ -51,21 +54,30 @@ function baseTemplate(content) {
 </html>`
 }
 
-function welcomeEmail(fullName) {
+function verificationEmail(fullName, verifyUrl) {
   return baseTemplate(`
-    <p style="margin:0 0 6px;font-size:11px;color:${MUTED_COLOR};letter-spacing:0.25em;text-transform:uppercase;">Benvenuto/a</p>
+    <p style="margin:0 0 6px;font-size:11px;color:${MUTED_COLOR};letter-spacing:0.25em;text-transform:uppercase;">Conferma Account</p>
     <h1 style="margin:0 0 20px;font-family:'Georgia',serif;font-size:32px;font-weight:300;color:${TEXT_COLOR};line-height:1.1;">
       Ciao, ${fullName}<span style="color:${BRAND_COLOR};">.</span>
     </h1>
     <p style="margin:0 0 16px;font-size:14px;color:${MUTED_COLOR};line-height:1.7;">
-      Il tuo account Opale Studio è stato creato con successo. Da adesso puoi prenotare la sala pose in pochi click, scegliere i servizi extra e gestire tutto dal tuo profilo.
+      Grazie per esserti registrato/a su Opale Studio. Per attivare il tuo account e iniziare a prenotare la sala, clicca sul pulsante qui sotto.
     </p>
     <p style="margin:0 0 28px;font-size:14px;color:${MUTED_COLOR};line-height:1.7;">
-      Il team di Opale Studio è a tua disposizione per qualsiasi esigenza.
+      Il link è valido per <strong style="color:${TEXT_COLOR};">24 ore</strong>.
     </p>
+    <div style="text-align:center;margin-bottom:28px;">
+      <a href="${verifyUrl}"
+        style="display:inline-block;background:${BRAND_COLOR};color:#ffffff;text-decoration:none;padding:14px 36px;font-size:13px;letter-spacing:0.1em;text-transform:uppercase;font-weight:500;">
+        Conferma Email
+      </a>
+    </div>
     <div style="border-top:1px solid rgba(255,255,255,0.06);padding-top:20px;">
-      <p style="margin:0;font-size:12px;color:rgba(154,154,154,0.6);">
+      <p style="margin:0 0 8px;font-size:12px;color:rgba(154,154,154,0.6);">
         Se non hai creato questo account, ignora questa email.
+      </p>
+      <p style="margin:0;font-size:11px;color:rgba(154,154,154,0.4);word-break:break-all;">
+        Link diretto: ${verifyUrl}
       </p>
     </div>
   `)
@@ -146,18 +158,26 @@ function forgotPasswordEmail(fullName, resetUrl) {
   `)
 }
 
-async function sendWelcomeEmail(user) {
+async function sendVerificationEmail(user, verifyUrl) {
+  if (!process.env.RESEND_API_KEY) {
+    console.log(`[DEV] Verification link for ${user.email}: ${verifyUrl}`)
+    return
+  }
   return transporter.sendMail({
-    from: `"Opale Studio" <${process.env.SMTP_FROM || 'noreply@opalestudio.it'}>`,
+    from: FROM,
     to: user.email,
-    subject: 'Benvenuto in Opale Studio',
-    html: welcomeEmail(user.full_name),
+    subject: 'Conferma il tuo account — Opale Studio',
+    html: verificationEmail(user.full_name, verifyUrl),
   })
 }
 
 async function sendBookingConfirmationEmail(user, booking, services = []) {
+  if (!process.env.RESEND_API_KEY) {
+    console.log(`[DEV] Booking confirmation email for ${user.email}`)
+    return
+  }
   return transporter.sendMail({
-    from: `"Opale Studio" <${process.env.SMTP_FROM || 'noreply@opalestudio.it'}>`,
+    from: FROM,
     to: user.email,
     subject: `Prenotazione Confermata — Opale Studio #${booking.id}`,
     html: bookingConfirmationEmail(user, booking, services),
@@ -165,12 +185,16 @@ async function sendBookingConfirmationEmail(user, booking, services = []) {
 }
 
 async function sendForgotPasswordEmail(user, resetUrl) {
+  if (!process.env.RESEND_API_KEY) {
+    console.log(`[DEV] Reset link for ${user.email}: ${resetUrl}`)
+    return
+  }
   return transporter.sendMail({
-    from: `"Opale Studio" <${process.env.SMTP_FROM || 'noreply@opalestudio.it'}>`,
+    from: FROM,
     to: user.email,
     subject: 'Reimposta la tua password — Opale Studio',
     html: forgotPasswordEmail(user.full_name, resetUrl),
   })
 }
 
-module.exports = { sendWelcomeEmail, sendBookingConfirmationEmail, sendForgotPasswordEmail }
+module.exports = { sendVerificationEmail, sendBookingConfirmationEmail, sendForgotPasswordEmail }

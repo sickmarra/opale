@@ -37,12 +37,13 @@ function PasswordBar({ password }) {
 }
 
 export default function RegisterPage() {
-  const [fullName, setFullName] = useState('')
-  const [email, setEmail]       = useState('')
-  const [password, setPassword] = useState('')
-  const [showPw, setShowPw]     = useState(false)
-  const [loading, setLoading]   = useState(false)
-  const [error, setError]       = useState('')
+  const [fullName, setFullName]   = useState('')
+  const [email, setEmail]         = useState('')
+  const [password, setPassword]   = useState('')
+  const [showPw, setShowPw]       = useState(false)
+  const [loading, setLoading]     = useState(false)
+  const [error, setError]         = useState('')
+  const [emailSent, setEmailSent] = useState(false)
   const { register, loginWithGoogle } = useAuth()
   const navigate = useNavigate()
 
@@ -53,7 +54,7 @@ export default function RegisterPage() {
     setLoading(true)
     try {
       await register(email, password, fullName)
-      navigate('/', { replace: true })
+      setEmailSent(true)
     } catch (err) {
       setError(err.response?.data?.error || 'Errore durante la registrazione')
     } finally {
@@ -76,6 +77,43 @@ export default function RegisterPage() {
 
   const handleGoogleError = () => {
     setError('Accesso con Google fallito')
+  }
+
+  if (emailSent) {
+    return (
+      <div className="min-h-dvh relative overflow-hidden bg-[#080808] flex flex-col items-center justify-center px-6">
+        <div className="pointer-events-none fixed inset-0 overflow-hidden">
+          <div className="absolute rounded-full" style={{
+            width:'55vw', height:'55vw', maxWidth:460, maxHeight:460,
+            background:'radial-gradient(circle, rgba(200,90,30,0.18) 0%, transparent 70%)',
+            top:'-8%', right:'-15%', filter:'blur(80px)',
+          }}/>
+        </div>
+        <div className="relative z-10 w-full max-w-sm text-center animate-slide-up">
+          <div className="mb-6 flex justify-center">
+            <div className="w-16 h-16 rounded-full flex items-center justify-center" style={{ background: 'rgba(200,90,30,0.12)', border: '1px solid rgba(200,90,30,0.3)' }}>
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-7 h-7" viewBox="0 0 24 24" fill="none" stroke="#C85A1E" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>
+              </svg>
+            </div>
+          </div>
+          <p className="font-body text-[10px] text-muted tracking-[0.3em] uppercase mb-3">Quasi fatto</p>
+          <h1 className="font-heading font-light text-text mb-4" style={{ fontSize: 'clamp(2.2rem, 9vw, 3.5rem)', letterSpacing: '-0.01em', lineHeight: 0.95 }}>
+            Controlla<br/>la tua email<span style={{ color: '#C85A1E' }}>.</span>
+          </h1>
+          <p className="font-body text-sm text-muted leading-relaxed mb-2">
+            Ti abbiamo inviato un link di conferma a
+          </p>
+          <p className="font-body text-sm text-text mb-6 break-all">{email}</p>
+          <p className="font-body text-xs text-muted leading-relaxed mb-8">
+            Clicca sul link nell'email per attivare il tuo account. Controlla anche la cartella spam.
+          </p>
+          <Link to="/login" className="font-body text-xs text-muted hover:text-[#C85A1E] transition-colors tracking-widest uppercase">
+            Torna al login
+          </Link>
+        </div>
+      </div>
+    )
   }
 
   return (

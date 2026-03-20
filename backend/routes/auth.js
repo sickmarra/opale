@@ -5,7 +5,7 @@ const crypto = require('crypto')
 const { getDb } = require('../database')
 const { authenticate } = require('../middleware/auth')
 const { OAuth2Client } = require('google-auth-library')
-const { sendWelcomeEmail, sendForgotPasswordEmail } = require('../utils/mailer')
+const { sendVerificationEmail, sendForgotPasswordEmail } = require('../utils/mailer')
 
 const router = express.Router()
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID)
@@ -36,16 +36,59 @@ router.post('/register', async (req, res) => {
     }
 
     const hashedPassword = bcrypt.hashSync(password, 10)
+    const verificationToken = crypto.randomBytes(32).toString('hex')
+    const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 ore
+
     const result = await pool.query(
-      'INSERT INTO users (email, password, full_name) VALUES ($1, $2, $3) RETURNING id, email, full_name, role',
-      [email.toLowerCase(), hashedPassword, full_name.trim()]
+      `INSERT INTO users (email, password, full_name, email_verified, verification_token, verification_token_expires)
+       VALUES ($1, $2, $3, FALSE, $4, $5)
+       RETURNING id, email, full_name, role`,
+      [email.toLowerCase(), hashedPassword, full_name.trim(), verificationToken, verificationExpires]
     )
     const user = result.rows[0]
-    const token = generateToken(user.id)
 
-    sendWelcomeEmail(user).catch(err => console.error('Welcome email error:', err.message))
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173'
+    const verifyUrl = `${frontendUrl}/verifica-email?token=${verificationToken}`
+    sendVerificationEmail(user, verifyUrl).catch(err => console.error('Verification email error:', err.message))
 
-    res.status(201).json({ token, user })
+    res.status(201).json({ message: 'Registrazione completata! Controlla la tua email per confermare l\'account.' })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: 'Errore interno del server' })
+  }
+})
+
+// GET /api/auth/verify-email?token=xxx
+router.get('/verify-email', async (req, res) => {
+  const { token } = req.query
+  if (!token) {
+    return res.status(400).json({ error: 'Token mancante' })
+  }
+
+  try {
+    const pool = getDb()
+    const result = await pool.query(
+      'SELECT id, email, full_name, role FROM users WHERE verification_token = $1 AND email_verified = FALSE',
+      [token]
+    )
+    const user = result.rows[0]
+
+    if (!user) {
+      return res.status(400).json({ error: 'Link non valido o già utilizzato' })
+    }
+
+    if (new Date(user.verification_token_expires) < new Date()) {
+      return res.status(400).json({ error: 'Link scaduto. Registrati di nuovo.' })
+    }
+
+    await pool.query(
+      'UPDATE users SET email_verified = TRUE, verification_token = NULL, verification_token_expires = NULL WHERE id = $1',
+      [user.id]
+    )
+
+    const jwtToken = generateToken(user.id)
+    const safeUser = { id: user.id, email: user.email, full_name: user.full_name, role: user.role }
+    res.json({ token: jwtToken, user: safeUser, message: 'Email confermata! Benvenuto/a in Opale Studio.' })
   } catch (err) {
     console.error(err)
     res.status(500).json({ error: 'Errore interno del server' })
@@ -72,6 +115,10 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Credenziali non valide' })
     }
 
+    if (!user.email_verified) {
+      return res.status(403).json({ error: 'EMAIL_NOT_VERIFIED', message: 'Devi confermare la tua email prima di accedere. Controlla la tua casella di posta.' })
+    }
+
     const safeUser = { id: user.id, email: user.email, full_name: user.full_name, role: user.role }
     const token = generateToken(user.id)
     res.json({ token, user: safeUser })
@@ -96,13 +143,19 @@ router.post('/google', async (req, res) => {
     let user = userResult.rows[0]
 
     if (!user) {
+      // Google ha già verificato l'email — creiamo direttamente come verificato
       const randomPassword = bcrypt.hashSync(Math.random().toString(36).slice(-8), 10)
       const insertResult = await pool.query(
-        'INSERT INTO users (email, password, full_name) VALUES ($1, $2, $3) RETURNING id, email, full_name, role',
+        'INSERT INTO users (email, password, full_name, email_verified) VALUES ($1, $2, $3, TRUE) RETURNING id, email, full_name, role',
         [payload.email.toLowerCase(), randomPassword, payload.name]
       )
       user = insertResult.rows[0]
-      sendWelcomeEmail(user).catch(err => console.error('Welcome email error:', err.message))
+    } else if (!user.email_verified) {
+      // Utente esistente non verificato che ora accede con Google: verifica automaticamente
+      await pool.query(
+        'UPDATE users SET email_verified = TRUE, verification_token = NULL, verification_token_expires = NULL WHERE id = $1',
+        [user.id]
+      )
     }
 
     const safeUser = { id: user.id, email: user.email, full_name: user.full_name, role: user.role }
@@ -117,6 +170,39 @@ router.post('/google', async (req, res) => {
 // GET /api/auth/me
 router.get('/me', authenticate, (req, res) => {
   res.json({ user: req.user })
+})
+
+// POST /api/auth/resend-verification
+router.post('/resend-verification', async (req, res) => {
+  const { email } = req.body
+  if (!email) return res.status(400).json({ error: 'Email obbligatoria' })
+
+  try {
+    const pool = getDb()
+    const result = await pool.query('SELECT id, email, full_name, email_verified FROM users WHERE email = $1', [email.toLowerCase()])
+    const user = result.rows[0]
+
+    // Risposta generica per sicurezza
+    if (!user || user.email_verified) {
+      return res.json({ message: 'Se l\'email esiste e non è ancora verificata, riceverai un nuovo link.' })
+    }
+
+    const verificationToken = crypto.randomBytes(32).toString('hex')
+    const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000)
+    await pool.query(
+      'UPDATE users SET verification_token = $1, verification_token_expires = $2 WHERE id = $3',
+      [verificationToken, verificationExpires, user.id]
+    )
+
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173'
+    const verifyUrl = `${frontendUrl}/verifica-email?token=${verificationToken}`
+    sendVerificationEmail(user, verifyUrl).catch(err => console.error('Resend verification error:', err.message))
+
+    res.json({ message: 'Se l\'email esiste e non è ancora verificata, riceverai un nuovo link.' })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: 'Errore interno del server' })
+  }
 })
 
 // POST /api/auth/forgot-password

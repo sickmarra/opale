@@ -6,23 +6,29 @@ import Logo from '../components/Logo'
 import Footer from '../components/Footer'
 
 export default function LoginPage() {
-  const [email, setEmail]       = useState('')
-  const [password, setPassword] = useState('')
-  const [showPw, setShowPw]     = useState(false)
-  const [loading, setLoading]   = useState(false)
-  const [error, setError]       = useState('')
+  const [email, setEmail]             = useState('')
+  const [password, setPassword]       = useState('')
+  const [showPw, setShowPw]           = useState(false)
+  const [loading, setLoading]         = useState(false)
+  const [error, setError]             = useState('')
+  const [notVerified, setNotVerified] = useState(false)
   const { login, loginWithGoogle } = useAuth()
   const navigate = useNavigate()
 
   async function handleSubmit(e) {
     e.preventDefault()
     setError('')
+    setNotVerified(false)
     setLoading(true)
     try {
       await login(email, password)
       navigate('/', { replace: true })
     } catch (err) {
-      setError(err.response?.data?.error || 'Credenziali non valide')
+      if (err.response?.data?.error === 'EMAIL_NOT_VERIFIED') {
+        setNotVerified(true)
+      } else {
+        setError(err.response?.data?.error || 'Credenziali non valide')
+      }
     } finally {
       setLoading(false)
     }
@@ -101,11 +107,19 @@ export default function LoginPage() {
           <form onSubmit={handleSubmit} className="space-y-4 w-full animate-slide-up-d1">
 
           {error && (
-            <div
-              className="px-4 py-3 animate-slide-up"
-              style={{ background: 'rgba(192,57,43,0.08)', borderLeft: '2px solid #C0392B' }}
-            >
+            <div className="px-4 py-3 animate-slide-up" style={{ background: 'rgba(192,57,43,0.08)', borderLeft: '2px solid #C0392B' }}>
               <p className="font-body text-xs text-red-400 tracking-wide">{error}</p>
+            </div>
+          )}
+
+          {notVerified && (
+            <div className="px-4 py-3 animate-slide-up" style={{ background: 'rgba(200,90,30,0.08)', borderLeft: '2px solid #C85A1E' }}>
+              <p className="font-body text-xs tracking-wide mb-1" style={{ color: '#C85A1E' }}>
+                Email non ancora confermata.
+              </p>
+              <p className="font-body text-xs text-muted tracking-wide">
+                Controlla la tua casella di posta e clicca sul link che ti abbiamo inviato.
+              </p>
             </div>
           )}
 
