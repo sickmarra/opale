@@ -74,7 +74,8 @@ router.post('/', authenticate, async (req, res) => {
   const rawDate = req.body.date
   const start_hour = parseInt(req.body.start_hour, 10)
   const end_hour = parseInt(req.body.end_hour, 10)
-  const service_ids = Array.isArray(req.body.service_ids) ? req.body.service_ids.map(Number).filter(Number.isFinite) : []
+  const rawIds = Array.isArray(req.body.service_ids) ? req.body.service_ids : []
+  const service_ids = rawIds.slice(0, 10).map(Number).filter(Number.isFinite)
   const notes = typeof req.body.notes === 'string' ? req.body.notes.slice(0, 500) : null
   const date = rawDate
 

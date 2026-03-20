@@ -21,8 +21,14 @@ router.post('/register', authLimiter, async (req, res) => {
   if (!email || !password || !full_name) {
     return res.status(400).json({ error: 'Tutti i campi sono obbligatori' })
   }
-  if (password.length < 6) {
-    return res.status(400).json({ error: 'La password deve essere di almeno 6 caratteri' })
+  if (typeof full_name !== 'string' || full_name.trim().length < 2 || full_name.trim().length > 100) {
+    return res.status(400).json({ error: 'Il nome deve essere tra 2 e 100 caratteri' })
+  }
+  if (typeof email !== 'string' || email.length > 254) {
+    return res.status(400).json({ error: 'Email non valida' })
+  }
+  if (password.length < 6 || password.length > 128) {
+    return res.status(400).json({ error: 'La password deve essere tra 6 e 128 caratteri' })
   }
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
   if (!emailRegex.test(email)) {
@@ -50,15 +56,16 @@ router.post('/register', authLimiter, async (req, res) => {
       return res.status(409).json({ error: 'Email già registrata' })
     }
 
-    const hashedPassword = bcrypt.hashSync(password, 10)
+    const hashedPassword = await bcrypt.hash(password, 10)
     const verificationToken = crypto.randomBytes(32).toString('hex')
     const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 ore
+    const privacyAcceptedAt = new Date()
 
     const result = await pool.query(
-      `INSERT INTO users (email, password, full_name, email_verified, verification_token, verification_token_expires)
-       VALUES ($1, $2, $3, FALSE, $4, $5)
+      `INSERT INTO users (email, password, full_name, email_verified, verification_token, verification_token_expires, privacy_accepted_at)
+       VALUES ($1, $2, $3, FALSE, $4, $5, $6)
        RETURNING id, email, full_name, role`,
-      [email.toLowerCase(), hashedPassword, full_name.trim(), verificationToken, verificationExpires]
+      [email.toLowerCase(), hashedPassword, full_name.trim(), verificationToken, verificationExpires, privacyAcceptedAt]
     )
     const user = result.rows[0]
 
@@ -125,7 +132,7 @@ router.post('/login', authLimiter, async (req, res) => {
       return res.status(401).json({ error: 'Credenziali non valide' })
     }
 
-    const passwordMatch = bcrypt.compareSync(password, user.password)
+    const passwordMatch = await bcrypt.compare(password, user.password)
     if (!passwordMatch) {
       return res.status(401).json({ error: 'Credenziali non valide' })
     }
@@ -159,7 +166,7 @@ router.post('/google', async (req, res) => {
 
     if (!user) {
       // Google ha già verificato l'email — creiamo direttamente come verificato
-      const randomPassword = bcrypt.hashSync(Math.random().toString(36).slice(-8), 10)
+      const randomPassword = await bcrypt.hash(Math.random().toString(36).slice(-8), 10)
       const insertResult = await pool.query(
         'INSERT INTO users (email, password, full_name, email_verified) VALUES ($1, $2, $3, TRUE) RETURNING id, email, full_name, role',
         [payload.email.toLowerCase(), randomPassword, payload.name]
@@ -285,7 +292,7 @@ router.post('/reset-password', async (req, res) => {
       return res.status(400).json({ error: 'Link scaduto. Richiedi un nuovo link di recupero.' })
     }
 
-    const hashedPassword = bcrypt.hashSync(password, 10)
+    const hashedPassword = await bcrypt.hash(password, 10)
     await pool.query('UPDATE users SET password = $1 WHERE id = $2', [hashedPassword, resetToken.user_id])
     await pool.query('UPDATE password_reset_tokens SET used = 1 WHERE id = $1', [resetToken.id])
 

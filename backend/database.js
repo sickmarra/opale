@@ -21,6 +21,7 @@ async function initDatabase() {
       email_verified BOOLEAN NOT NULL DEFAULT FALSE,
       verification_token TEXT,
       verification_token_expires TIMESTAMP,
+      privacy_accepted_at TIMESTAMP,
       created_at TIMESTAMP DEFAULT NOW()
     )
   `)
@@ -28,6 +29,7 @@ async function initDatabase() {
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified BOOLEAN NOT NULL DEFAULT FALSE`).catch(() => {})
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS verification_token TEXT`).catch(() => {})
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS verification_token_expires TIMESTAMP`).catch(() => {})
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS privacy_accepted_at TIMESTAMP`).catch(() => {})
   await pool.query(`
     CREATE TABLE IF NOT EXISTS services (
       id SERIAL PRIMARY KEY,
@@ -73,7 +75,7 @@ async function initDatabase() {
   const adminEmail = process.env.ADMIN_EMAIL || 'admin@opalestudio.it'
   const existingAdmin = await pool.query('SELECT id FROM users WHERE email = $1', [adminEmail])
   if (existingAdmin.rows.length === 0) {
-    const hashedPassword = bcrypt.hashSync(process.env.ADMIN_PASSWORD || 'Opale2024!', 10)
+    const hashedPassword = await bcrypt.hash(process.env.ADMIN_PASSWORD || 'Opale2024!', 10)
     await pool.query(
       'INSERT INTO users (email, password, full_name, role, email_verified) VALUES ($1, $2, $3, $4, TRUE)',
       [adminEmail, hashedPassword, 'Admin Opale', 'admin']
