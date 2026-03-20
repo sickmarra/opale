@@ -82,7 +82,7 @@ router.get('/verify-email', async (req, res) => {
   try {
     const pool = getDb()
     const result = await pool.query(
-      'SELECT id, email, full_name, role FROM users WHERE verification_token = $1 AND email_verified = FALSE',
+      'SELECT id, email, full_name, role, verification_token_expires FROM users WHERE verification_token = $1 AND email_verified = FALSE',
       [token]
     )
     const user = result.rows[0]
