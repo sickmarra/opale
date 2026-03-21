@@ -45,7 +45,7 @@ export default function PrivacyPolicyPage() {
 
           <Section title="1. Titolare del Trattamento">
             <p>
-              Il titolare del trattamento dei dati personali è <strong className="text-text">Opale Studio</strong>, con sede in Via Example 1, 00100 Roma (RM), Italia. P.IVA 12345678901.
+              Il titolare del trattamento dei dati personali è <strong className="text-text">Opale Studio</strong>, con sede in Via De Gasperi 16, 81030 Lusciano (CE), Italia. P.IVA 04771840610.
             </p>
             <p>
               Email: <a href="mailto:info.abfotografiapubblicitaria@gmail.com" className="text-text hover:text-[#C85A1E] transition-colors">info.abfotografiapubblicitaria@gmail.com</a>
@@ -171,7 +171,7 @@ export default function PrivacyPolicyPage() {
         <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
           <Link to="/cookie" className="font-body text-[10px] text-muted hover:text-text transition-colors tracking-widest uppercase">Cookie Policy</Link>
           <span className="text-muted/30 text-[10px]">·</span>
-          <span className="font-body text-[10px] text-muted/40">© {new Date().getFullYear()} Opale Studio · P.IVA 12345678901</span>
+          <span className="font-body text-[10px] text-muted/40">© {new Date().getFullYear()} Opale Studio · P.IVA 04771840610</span>
         </div>
       </footer>
     </div>

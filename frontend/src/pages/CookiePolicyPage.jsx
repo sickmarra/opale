@@ -149,7 +149,7 @@ export default function CookiePolicyPage() {
         <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
           <Link to="/privacy" className="font-body text-[10px] text-muted hover:text-text transition-colors tracking-widest uppercase">Privacy Policy</Link>
           <span className="text-muted/30 text-[10px]">·</span>
-          <span className="font-body text-[10px] text-muted/40">© {new Date().getFullYear()} Opale Studio · P.IVA 12345678901</span>
+          <span className="font-body text-[10px] text-muted/40">© {new Date().getFullYear()} Opale Studio · P.IVA 04771840610</span>
         </div>
       </footer>
     </div>

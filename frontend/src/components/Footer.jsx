@@ -36,7 +36,7 @@ export default function Footer({ minimal = false }) {
               Sala pose fotografica professionale. Prenota il tuo spazio creativo.
             </p>
             <p className="font-body text-[10px] text-muted/50 mt-3 tracking-wide">
-              P.IVA 12345678901
+              P.IVA 04771840610
             </p>
           </div>
 
