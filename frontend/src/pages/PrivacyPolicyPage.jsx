@@ -48,7 +48,7 @@ export default function PrivacyPolicyPage() {
               Il titolare del trattamento dei dati personali è <strong className="text-text">Opale Studio</strong>, con sede in Via Example 1, 00100 Roma (RM), Italia. P.IVA 12345678901.
             </p>
             <p>
-              Email: <a href="mailto:privacy@opalestudio.it" className="text-text hover:text-[#C85A1E] transition-colors">privacy@opalestudio.it</a>
+              Email: <a href="mailto:info.abfotografiapubblicitaria@gmail.com" className="text-text hover:text-[#C85A1E] transition-colors">info.abfotografiapubblicitaria@gmail.com</a>
             </p>
           </Section>
 
@@ -123,8 +123,8 @@ export default function PrivacyPolicyPage() {
             </ul>
             <p className="mt-3">
               Per esercitare i tuoi diritti, contattaci a{' '}
-              <a href="mailto:privacy@opalestudio.it" className="text-text hover:text-[#C85A1E] transition-colors">
-                privacy@opalestudio.it
+              <a href="mailto:info.abfotografiapubblicitaria@gmail.com" className="text-text hover:text-[#C85A1E] transition-colors">
+                info.abfotografiapubblicitaria@gmail.com
               </a>. Puoi inoltre proporre reclamo al Garante per la protezione dei dati personali (<a href="https://www.garanteprivacy.it" target="_blank" rel="noopener noreferrer" className="text-text hover:text-[#C85A1E] transition-colors">www.garanteprivacy.it</a>).
             </p>
           </Section>

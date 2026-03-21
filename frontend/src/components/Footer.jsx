@@ -45,13 +45,13 @@ export default function Footer({ minimal = false }) {
             <p className="font-body text-[10px] text-muted tracking-[0.25em] uppercase mb-4">Contatti</p>
             <div className="space-y-2.5">
               <a
-                href="mailto:info@opalestudio.it"
-                className="flex items-center gap-2 font-body text-xs text-muted hover:text-text transition-colors group"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5 group-hover:text-[#C85A1E] transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>
+                  href="mailto:info.abfotografiapubblicitaria@gmail.com"
+                  className="flex items-center gap-2 font-body text-xs text-muted hover:text-text transition-colors group"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5 group-hover:text-[#C85A1E] transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>
                 </svg>
-                info@opalestudio.it
+                info.abfotografiapubblicitaria@gmail.com
               </a>
               <a
                 href="tel:+390000000000"

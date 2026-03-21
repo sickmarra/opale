@@ -11,7 +11,7 @@ function escapeHtml(str) {
     .replace(/'/g, '&#x27;')
 }
 
-const SENDER = { name: 'Opale Studio', email: 'bellacity123@gmail.com' }
+const SENDER = { name: 'Opale Studio', email: 'info.abfotografiapubblicitaria@gmail.com' }
 const BRAND_COLOR = '#C85A1E'
 const BG_COLOR = '#0D0D0D'
 const CARD_COLOR = '#141414'

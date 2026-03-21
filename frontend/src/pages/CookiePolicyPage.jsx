@@ -136,8 +136,8 @@ export default function CookiePolicyPage() {
           <Section title="5. Contatti">
             <p>
               Per qualsiasi domanda relativa ai cookie, puoi contattarci a{' '}
-              <a href="mailto:privacy@opalestudio.it" className="text-text hover:text-[#C85A1E] transition-colors">
-                privacy@opalestudio.it
+              <a href="mailto:info.abfotografiapubblicitaria@gmail.com" className="text-text hover:text-[#C85A1E] transition-colors">
+                info.abfotografiapubblicitaria@gmail.com
               </a>
             </p>
           </Section>
