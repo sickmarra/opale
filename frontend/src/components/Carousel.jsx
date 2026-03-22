@@ -1,10 +1,12 @@
 import { useState, useEffect, useRef } from 'react'
 
 const images = [
-  { src: '/images/studio-1.jpeg', alt: 'Opale Studio — Sala Pose' },
-  { src: '/images/studio-2.jpeg', alt: 'Opale Studio — Setup Fotografico' },
+  { src: '/images/studio-1.jpg', alt: 'Opale Studio — Sala Pose' },
+  { src: '/images/studio-2.png', alt: 'Opale Studio — Setup Fotografico' },
   { src: '/images/studio-3.jpeg', alt: 'Opale Studio — Ambiente' },
-  { src: '/images/studio-4.jpeg', alt: 'Opale Studio — Dettagli' },
+  { src: '/images/studio-4.jpg', alt: 'Opale Studio — Dettagli' },
+  { src: '/images/studio-5.jpg', alt: 'Opale Studio — Vista' },
+  { src: '/images/studio-6.jpg', alt: 'Opale Studio — Atmosfera' },
 ]
 
 export default function Carousel() {
