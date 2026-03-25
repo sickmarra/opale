@@ -14,6 +14,8 @@ import LandingPage from './pages/LandingPage'
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage'
 import CookiePolicyPage from './pages/CookiePolicyPage'
 import VerifyEmailPage from './pages/VerifyEmailPage'
+import NotFoundPage from './pages/NotFoundPage'
+import UnauthorizedPage from './pages/UnauthorizedPage'
 
 function ProtectedRoute({ children, adminOnly = false }) {
   const { user, loading } = useAuth()
@@ -27,7 +29,7 @@ function ProtectedRoute({ children, adminOnly = false }) {
   }
 
   if (!user) return <Navigate to="/login" replace />
-  if (adminOnly && user.role !== 'admin') return <Navigate to="/" replace />
+  if (adminOnly && user.role !== 'admin') return <UnauthorizedPage />
   return children
 }
 
@@ -59,7 +61,7 @@ export default function App() {
         <Route path="/prenota" element={<ProtectedRoute><BookingPage /></ProtectedRoute>} />
         <Route path="/profilo" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
         <Route path="/admin" element={<ProtectedRoute adminOnly><AdminPage /></ProtectedRoute>} />
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
       <CookieBanner />
     </div>

@@ -65,7 +65,7 @@ export default function BookingConfirmation({ date, startHour, endHour, serviceI
         {[
           { label: 'Data', value: format(date,"EEEE d MMMM",{locale:it}), cap: true },
           { label: 'Orario', value: `${startHour}:00 – ${endHour}:00 (${duration}h)` },
-          ...(selectedServices.map(s => ({ label: s.name, value: `€${s.price}` }))),
+          ...(selectedServices.map(s => ({ label: s.name, value: s.price > 0 ? `€${s.price}` : '' }))),
           { label: 'Totale', value: `€${total}`, highlight: true },
         ].map((row, i) => (
           <div key={i} className="flex justify-between py-3 px-1"
@@ -113,7 +113,7 @@ export default function BookingConfirmation({ date, startHour, endHour, serviceI
         {[
           { label: 'Orario', value: `${startHour}:00 – ${endHour}:00 (${duration}h)` },
           { label: `Studio (${isWeekend?'weekend':'feriale'})`, value: `€${studioPrice}` },
-          ...selectedServices.map(s => ({ label: s.name, value: `€${s.price}` })),
+          ...selectedServices.map(s => ({ label: s.name, value: s.price > 0 ? `€${s.price}` : '' })),
         ].map((row, i) => (
           <div key={i} className="flex justify-between py-2.5 px-1"
             style={{ borderBottom: i < 1 + selectedServices.length ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
