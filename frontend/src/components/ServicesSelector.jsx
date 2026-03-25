@@ -68,12 +68,14 @@ export default function ServicesSelector({ selectedIds, onSelectionChange }) {
                   <p className="font-body text-[10px] text-muted mt-0.5 leading-snug">{service.description}</p>
                 )}
               </div>
-              <span
-                className="font-heading text-lg font-light flex-shrink-0 ml-2"
-                style={{ color: sel ? '#C85A1E' : '#7A7268' }}
-              >
-                €{service.price}
-              </span>
+              {service.price > 0 && (
+                <span
+                  className="font-heading text-lg font-light flex-shrink-0 ml-2"
+                  style={{ color: sel ? '#C85A1E' : '#7A7268' }}
+                >
+                  €{service.price}
+                </span>
+              )}
             </button>
           )
         })}
@@ -85,7 +87,9 @@ export default function ServicesSelector({ selectedIds, onSelectionChange }) {
           style={{ borderTop:'1px solid rgba(255,255,255,0.06)' }}
         >
           <span className="font-body text-xs text-muted tracking-wide">{selectedIds.length} extra selezionati</span>
-          <span className="font-heading text-xl font-light" style={{ color:'#C85A1E' }}>+€{extrasTotal}</span>
+          {extrasTotal > 0 && (
+            <span className="font-heading text-xl font-light" style={{ color:'#C85A1E' }}>+€{extrasTotal}</span>
+          )}
         </div>
       )}
     </div>

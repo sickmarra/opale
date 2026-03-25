@@ -85,7 +85,7 @@ function ServiceModal({ service, onSave, onClose }) {
   const [error, setError]   = useState('')
 
   async function save() {
-    if (!name.trim() || price === '') { setError('Nome e prezzo obbligatori'); return }
+    if (!name.trim()) { setError('Nome obbligatorio'); return }
     const p = parseFloat(price)
     if (isNaN(p) || p < 0) { setError('Prezzo non valido'); return }
     setSaving(true)
