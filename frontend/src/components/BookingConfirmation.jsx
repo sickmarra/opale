@@ -121,10 +121,10 @@ export default function BookingConfirmation({ date, startHour, endHour, serviceI
             <span className="font-body text-sm text-text">{row.value}</span>
           </div>
         ))}
-        <div className="flex justify-between py-3 px-1">
+         {total > 0 && <div className="flex justify-between py-3 px-1">
           <span className="font-body text-xs text-muted tracking-wide uppercase">Totale</span>
-          {total > 0 && <span className="font-heading text-2xl font-light" style={{ color:'#C85A1E' }}>€{total}</span>}
-        </div>
+          <span className="font-heading text-2xl font-light" style={{ color:'#C85A1E' }}>€{total}</span>
+        </div>}
       </div>
 
       {/* Notes */}
